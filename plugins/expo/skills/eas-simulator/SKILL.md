@@ -189,7 +189,7 @@ For the full verb set and the `argent` controller alternative, see [references/c
 
 ## When the app crashes: device logs and crash reports (iOS)
 
-When the app crashes or closes on launch, read the iOS session's crash reports and device log before guessing from screenshots. Read them from the preview API URL in `simulator:get --json`. That URL carries the session token, so never print it.
+When the app crashes or closes on launch, read the iOS session's crash reports and device log before guessing from screenshots. Request the preview API URL with `simulator:get --json --public-link --id <session-id>`; default JSON omits it. The opt-in URL carries the session token, so keep it in a shell variable and never print it.
 
 **Hold the device log before you reproduce the crash.** Without the hold, the crash gets a report but an empty log tail. Commands, fields, and fallbacks are in [references/logs-and-crashes.md](./references/logs-and-crashes.md).
 

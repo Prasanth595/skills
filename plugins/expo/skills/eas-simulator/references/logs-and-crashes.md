@@ -6,10 +6,10 @@ This covers iOS sessions. Call `sim_api /crashes` first. If it returns `404 Not 
 
 ## Reach the preview API
 
-`simulator:get --json` returns `remoteConfig.previewApiUrl`, the preview server's API URL with the session token already in its query. Keep it in a shell variable and don't print it: the token grants control of the session. As with `simulator:exec`, run this from the Expo project directory. Pass `--id` with the session you are driving, because another agent can replace the dotenv session between your commands.
+Default `simulator:get --json` omits the direct preview API URL. Add `--public-link` to this lookup to receive `remoteConfig.previewApiUrl` with the session token in its query. This output-only flag does not change the session's saved sharing preference. Keep the URL in a shell variable and don't print it: the token grants control of the session. As with `simulator:exec`, run this from the Expo project directory. Pass `--id` with the session you are driving, because another agent can replace the dotenv session between your commands.
 
 ```bash
-API=$(npx --yes eas-cli@latest simulator:get --json --id <session-id> | node -e '
+API=$(npx --yes eas-cli@latest simulator:get --json --public-link --id <session-id> | node -e '
   let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
     let j;
     try { j = JSON.parse(s); } catch { console.error("simulator:get did not print JSON"); process.exit(1); }
@@ -34,6 +34,8 @@ sim_api() {
 ```
 
 If your shell does not keep variables between commands, repeat these lines at the start of each command. Each repeat runs `simulator:get` again, which takes a few seconds, so put related reads in one command. Only call `/crashes`, `/crashes/<id>`, and `/logs`. Don't call `/api`: its response includes the exec token. Calls to the preview server do not reset the session's idle timer.
+
+If `simulator:get` rejects `--public-link`, upgrade to a CLI release that supports the flag and retry. The default JSON URL is intentionally unsuitable for direct preview API calls.
 
 ## Catch a crash with its log tail
 
