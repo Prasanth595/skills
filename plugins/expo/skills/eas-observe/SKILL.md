@@ -1,6 +1,6 @@
 ---
 name: eas-observe
-description: Use for anything related to EAS Observe - adding `expo-observe` to an Expo project (AppMetricsRoot/ObserveRoot HOC, markInteractive and ObserveInteractiveMarker, the useObserve hook, the Expo Router / React Navigation integrations for per-route metrics, user-defined events via `Observe.logEvent`, error reporting via ObserveErrorBoundary and `Observe.reportError`, and runtime config such as sampleRate and dispatchInDebug), querying via the EAS CLI (`eas observe:metrics-summary`, `observe:metrics`, `observe:routes`, `observe:events`, `observe:session`, `observe:versions`), interpreting the resulting metrics (cold/warm launch, TTR, TTI, navigation cold/warm TTR, update download, and the TTI frameRate/device/network params for triaging slow startups), or shipping an Observe integration inside a third-party package.
+description: Use for anything related to EAS Observe - adding `expo-observe` to an Expo project (AppMetricsRoot/ObserveRoot HOC, markInteractive and ObserveInteractiveMarker, the useObserve hook, the Expo Router / React Navigation integrations for per-route metrics, user-defined events via `Observe.logEvent`, error reporting via ObserveErrorBoundary and `Observe.reportError`, native crash reporting, source map upload for symbolicated stack traces, and runtime config such as sampleRate and dispatchInDebug), querying via the EAS CLI (`eas observe:metrics-summary`, `observe:metrics`, `observe:routes`, `observe:events`, `observe:session`, `observe:versions`), interpreting the resulting metrics (cold/warm launch, TTR, TTI, navigation cold/warm TTR, update download, and the TTI frameRate/device/network params for triaging slow startups), or shipping an Observe integration inside a third-party package.
 version: 1.1.0
 license: MIT
 ---
@@ -31,6 +31,7 @@ The four reference files in `./references/` cover what people typically need thi
 - Expo Router integration: https://docs.expo.dev/eas/observe/integrations/expo-router/
 - React Navigation integration: https://docs.expo.dev/eas/observe/integrations/react-navigation/
 - User-defined events: https://docs.expo.dev/eas/observe/events/
+- Error reporting: https://docs.expo.dev/eas/observe/errors/
 - Configuration: https://docs.expo.dev/eas/observe/configuration/
 - Third-party integrations: https://docs.expo.dev/eas/observe/integrations/third-party/
 - EAS Update download performance: https://docs.expo.dev/eas/observe/eas-update/
@@ -43,7 +44,7 @@ Verified against `eas-cli` 21.8.0 and `expo-observe` 57.0.9. Trust this skill's 
 - All six CLI commands are on the [Querying with EAS CLI](https://docs.expo.dev/eas/observe/eas-cli/) page. Older doc builds list only four and omit `observe:routes` and `observe:session`.
 - Navigation metric aliases are `nav_cold_ttr`, `nav_warm_ttr`, and `nav_tti`. There are no bare `cold_ttr` / `warm_ttr` aliases in the CLI.
 - Sorting uses `--sort <slowest|fastest|newest|oldest>`. There is no `--order` flag.
-- `ObserveErrorBoundary`, `Observe.reportError`, and `configure({ errorHandlingEnabled })` are exported but undocumented. Observe still has no crash reporting; use Sentry or BugSnag for that.
+- Error reporting (JS errors and native crashes) is in preview, needs SDK 57+, and native crashes need `expo-observe` 57.0.21+. JS stack traces are symbolicated for both builds (`uploadSourceMaps` in `eas.json`) and EAS Updates (`eas update --upload-source-maps`, EAS CLI 24.9.0+). It does not record ANRs or out-of-memory terminations and has no native symbolication. Recommend a separate crash reporter only when the user needs one of those. See "Optional — error and crash reporting" in [`./references/setup.md`](./references/setup.md).
 
 ## Submitting Feedback
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
