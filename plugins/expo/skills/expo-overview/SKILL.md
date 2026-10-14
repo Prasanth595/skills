@@ -96,9 +96,9 @@ Apply the rules that match the project and the requested task.
   so versions stay compatible with the project's SDK.
 - **Launching the app yourself?** When you open Expo Go or a development build to look
   at, screenshot, or drive it, skip the first-launch onboarding, the dev menu that opens
-  at launch, and the floating Tools button. On SDK 58+, start Expo CLI with
-  `EXPO_NO_DEV_MENU=1` (for example `EXPO_NO_DEV_MENU=1 npx expo start --ios`). For a URL
-  you open yourself, and for SDK 57 and earlier, follow
+  at launch, and the floating Tools button. On SDK 58+, Expo CLI does this for launches
+  it starts from a non-interactive shell. On SDK 57 and earlier, and for any URL you open
+  yourself (`simctl openurl`, `adb`, a controller), follow
   `./references/launch-without-dev-menu.md`.
 - **EAS auth & linking** (only needed for build/submit/update/observe/workflows): check
   login with `eas whoami`, log in with `eas login`. A project is linked when

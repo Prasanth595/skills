@@ -14,16 +14,9 @@ Check the `expo` version in `package.json` first. SDK 58 changed the URL form.
 
 ## SDK 58 and later
 
-**Expo CLI adds the flags for you.** Start the dev server with `EXPO_NO_DEV_MENU=1`:
+**Launches through Expo CLI need nothing.** When the CLI is not interactive (no TTY, or `CI` is set), it adds the reserved params to every launch URL it opens or prints, including `expo start --ios/--android`, pressing `i` / `a`, and `expo run:*`. Agent shells usually have no TTY. If yours does, set `EXPO_NO_DEV_MENU=1` to force it. `EXPO_NO_DEV_MENU=0` turns it off.
 
-```bash
-EXPO_NO_DEV_MENU=1 npx expo start --ios        # or --android, or press i / a
-EXPO_NO_DEV_MENU=1 npx expo run:ios            # development builds
-```
-
-The CLI then adds the reserved params to every launch URL it opens or prints, including the terminal URL, the QR code, `expo start --ios/--android`, and `expo run:*`. It already does this when it is not interactive (CI, or no TTY), but set the variable anyway. An agent harness may give the CLI a TTY.
-
-**When you open a URL yourself**, add these three params:
+**When you open a URL yourself**, with `simctl openurl`, `adb`, or a controller, the CLI never sees it. Add these three params:
 
 ```text
 __expo_disable_onboarding=1&__expo_disable_fab=1&__expo_disable_auto_launch=1
@@ -39,28 +32,29 @@ __expo_disable_onboarding=1&__expo_disable_fab=1&__expo_disable_auto_launch=1
 
 ## SDK 57 and earlier
 
-The `__expo_*` params and `EXPO_NO_DEV_MENU` do not exist. Use the older mechanisms below.
+Expo CLI adds no flags, and the `__expo_*` params do not exist. Every launch needs one of the mechanisms below, including launches through `npx expo start --ios` or `expo run:*`.
 
-**Development build (iOS and Android):** use the legacy launch URL with its flags:
+**iOS, Expo Go and development builds:** launch the app with UserDefaults launch arguments, then open the project. The open reaches the running process, so the arguments still apply. This works on every SDK 57 and earlier build:
+
+```bash
+APP=host.exp.Exponent   # Expo Go; for a development build, use its ios.bundleIdentifier
+xcrun simctl terminate booted $APP 2>/dev/null
+xcrun simctl launch booted $APP \
+  -EXDevMenuIsOnboardingFinished 1 -EXDevMenuShowsAtLaunch 0 -EXDevMenuShowFloatingActionButton 0
+xcrun simctl openurl booted "<launch URL>"   # or press i in `npx expo start`
+```
+
+The arguments apply only to that process. If the app quits or you relaunch it, launch it again with the arguments. Prefer this over URL flags on iOS: before `expo-dev-launcher` 57.0.20, iOS reads `disableOnboarding=1` only from inside the encoded `url=` value, and nothing in the URL stops the dev menu from opening at launch.
+
+**Android, development builds:** use the legacy launch URL with its flags:
 
 ```text
 <scheme>://expo-development-client/?url=<url-encoded dev server URL>&disableOnboarding=1&disableFab=1&disableAutoLaunch=1
 ```
 
-These flags are saved for that install. The Tools button and the dev menu at launch stay off until someone turns them back on in the dev menu settings. Tell the user if you did this on their own device.
+`disableFab` and `disableAutoLaunch` need `expo-dev-launcher` 57.0.20 or later. Older builds read only `disableOnboarding`, so the dev menu still opens at launch; close it. These flags are saved for that install, and the Tools button and the dev menu at launch stay off until someone turns them back on in the dev menu settings. Tell the user if you did this on their own device.
 
-**Expo Go on iOS:** URL params do nothing. Launch Expo Go with UserDefaults launch arguments first, then open the project. The open reaches the running process, so the arguments still apply:
-
-```bash
-xcrun simctl terminate booted host.exp.Exponent 2>/dev/null
-xcrun simctl launch booted host.exp.Exponent \
-  -EXDevMenuIsOnboardingFinished 1 -EXDevMenuShowsAtLaunch 0 -EXDevMenuShowFloatingActionButton 0
-xcrun simctl openurl booted "exp://<host>:8081"   # or press i in `npx expo start`
-```
-
-The arguments apply only to that process. If Expo Go quits or you relaunch it, launch it again with the arguments. The same arguments work on an iOS development build when you launch it by bundle identifier.
-
-**Expo Go on Android:** no launch flag exists. Dismiss the onboarding sheet once. Expo Go saves that for the install, so do not reinstall Expo Go between runs.
+**Android, Expo Go:** no launch flag exists. Dismiss the onboarding sheet once. Expo Go saves that for the install, so do not reinstall Expo Go between runs.
 
 ## Opening a URL on a simulator or emulator
 
@@ -70,6 +64,17 @@ xcrun simctl openurl booted "<launch URL>"
 
 # Android emulator: quote the URL inside the remote command, or the device shell cuts it at the first &
 adb shell "am start -a android.intent.action.VIEW -d '<launch URL>'"
+```
+
+**iOS asks "Open in '<app>'?"** the first time `simctl openurl` sends a scheme to an app, even when that app is in the foreground. Expo CLI approves the scheme itself when it opens a URL. When you call `simctl openurl` yourself, approve the scheme first:
+
+```bash
+UDID=<booted simulator udid>     # xcrun simctl list devices booted
+SCHEME=exp                       # or the development build's scheme, such as exp+my-app
+APP=host.exp.Exponent            # or the development build's bundle identifier
+P=~/Library/Developer/CoreSimulator/Devices/$UDID/data/Library/Preferences/com.apple.launchservices.schemeapproval.plist
+K="com.apple.CoreSimulator.CoreSimulatorBridge-->$SCHEME"
+/usr/libexec/PlistBuddy -c "Set :'$K' $APP" "$P" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :'$K' string $APP" "$P"
 ```
 
 On an EAS cloud simulator, the `eas-simulator` skill has its own launch commands. Add the same URL params and launch arguments there.
