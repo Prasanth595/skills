@@ -438,7 +438,7 @@ export default function ObservedRootLayout() {
 }
 ```
 
-Keep your existing `RootLayout` beneath `ObserveRoot` when making this change. Rendering `<ObserveRoot>` inside a layout is fine only when that layout just returns the wrapper and its children. If the layout has hooks such as `useObserve()`, initialization, an early `return null` (as in the splash-screen example), or other render logic, that code sits outside the provider and the boundary, and a delayed mount skews TTR.
+Keep your existing `RootLayout` beneath `ObserveRoot` when making this change. Rendering `<ObserveRoot>` inside a layout is fine only when that layout just returns the wrapper and its children.
 
 `ObserveRoot.wrap(RootLayout)` stays correct when no custom boundary is needed. Without `errorBoundaryFallback`, no root boundary is mounted and render errors are recorded by the global handler without the component stack. Pass `errorBoundaryFallback={null}` to capture render errors and render nothing after an error.
 
