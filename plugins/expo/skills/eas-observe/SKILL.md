@@ -37,15 +37,6 @@ The four reference files in `./references/` cover what people typically need thi
 - EAS Update download performance: https://docs.expo.dev/eas/observe/eas-update/
 - Troubleshooting: https://docs.expo.dev/eas/observe/reference/troubleshooting/
 
-## Known gaps between the docs and the shipped code
-
-Verified against `eas-cli` 21.8.0 and `expo-observe` 57.0.9. Trust this skill's references over the docs on these points, but re-check with `--help` and the installed package before relying on them:
-
-- All six CLI commands are on the [Querying with EAS CLI](https://docs.expo.dev/eas/observe/eas-cli/) page. Older doc builds list only four and omit `observe:routes` and `observe:session`.
-- Navigation metric aliases are `nav_cold_ttr`, `nav_warm_ttr`, and `nav_tti`. There are no bare `cold_ttr` / `warm_ttr` aliases in the CLI.
-- Sorting uses `--sort <slowest|fastest|newest|oldest>`. There is no `--order` flag.
-- Error reporting (JS errors and native crashes) is in preview, needs SDK 57+, and native crashes need `expo-observe` 57.0.21+. JS stack traces are symbolicated for both builds (`uploadSourceMaps` in `eas.json`) and EAS Updates (`eas update --upload-source-maps`, EAS CLI 24.9.0+). It does not record ANRs or out-of-memory terminations and has no native symbolication. Recommend a separate crash reporter only when the user needs one of those. See "Optional — error and crash reporting" in [`./references/setup.md`](./references/setup.md).
-
 ## Submitting Feedback
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
 ```bash
