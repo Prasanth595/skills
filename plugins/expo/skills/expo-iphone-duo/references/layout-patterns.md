@@ -1,7 +1,6 @@
 # Layout patterns for iPhone Duo
 
-Code for the rules in `SKILL.md`. All of it is a no-op on phones (their left and right insets are 0) and on
-Android unless noted.
+Code for the rules in `SKILL.md`. All of it is a no-op on phones (their left and right insets are 0) and on Android unless noted.
 
 ## What the app can read (iOS 27.1, iPhone Duo simulator)
 
@@ -17,8 +16,7 @@ The rail was on the right in these measurements; it can be on the left, so alway
 
 ## Rail insets that line up with native content
 
-Beside the rail UIKit drops its content margin, so native content ends on the safe-area edge. If your
-screens add their own horizontal margin inside, take it out of the rail inset:
+Beside the rail UIKit drops its content margin, so native content ends on the safe-area edge. If your screens add their own horizontal margin inside, take it out of the rail inset:
 
 ```ts
 // theme/rail.ts
@@ -37,13 +35,11 @@ export function useRailInsets() {
 }
 ```
 
-Use the same values everywhere the rail is applied, so content, floating controls and anything sized from
-the window agree.
+Use the same values everywhere the rail is applied, so content, floating controls and anything sized from the window agree.
 
 ## Tab screens that are lists or forms
 
-Pad the tab's stack content. Native headers and the tab bar stay where iOS puts them, and the screen
-background still fills the strip beside the rail:
+Pad the tab's stack content. Native headers and the tab bar stay where iOS puts them, and the screen background still fills the strip beside the rail:
 
 ```tsx
 // app/(tabs)/(settings)/_layout.tsx
@@ -60,14 +56,11 @@ export default function SettingsStack() {
 }
 ```
 
-It's a hook because the insets change at run time (moving between displays, Split View). Don't pad the root
-navigator or `NativeTabs`: that pulls native bars out of the rail and leaves an empty strip.
+It's a hook because the insets change at run time (moving between displays, Split View). Don't pad the root navigator or `NativeTabs`: that pulls native bars out of the rail and leaves an empty strip.
 
 ## Screens with a full-width bar, dock or custom header
 
-Don't pad the whole screen. Pad the parts that hold content, use margins for a box with absolutely
-positioned children, and give the bar its own edge insets so its background, border and shadow still run to
-the edge:
+Don't pad the whole screen. Pad the parts that hold content, use margins for a box with absolutely positioned children, and give the bar its own edge insets so its background, border and shadow still run to the edge:
 
 ```tsx
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -100,16 +93,11 @@ export default function PlayerScreen() {
 }
 ```
 
-A control that computes positions from the window (snapping between corners, a draggable track) must use
-the same box: `useWindowDimensions().width - rail.left - rail.right`.
+A control that computes positions from the window (snapping between corners, a draggable track) must use the same box: `useWindowDimensions().width - rail.left - rail.right`.
 
 ## Form sheets: pad only beside the rail's controls
 
-A provider inside the sheet measures the sheet's own native safe area, which UIKit computes from where the
-sheet is (0 for a centred sheet on the inner display). On the outer display UIKit reports the rail over a
-sheet's whole height, but the rail only has controls (camera, clock, status) in its top ~150 pt; below them
-it holds the tab bar, which a sheet covers. So apply the inset only when the sheet's detent lifts its top
-edge into that band.
+A provider inside the sheet measures the sheet's own native safe area, which UIKit computes from where the sheet is (0 for a centred sheet on the inner display). On the outer display UIKit reports the rail over a sheet's whole height, but the rail only has controls (camera, clock, status) in its top ~150 pt; below them it holds the tab bar, which a sheet covers. So apply the inset only when the sheet's detent lifts its top edge into that band.
 
 ```tsx
 // components/sheet-safe-area.tsx
@@ -159,14 +147,11 @@ const styles = StyleSheet.create({ fill: { flex: 1 } });
 </Stack>
 ```
 
-Add it to every stack that presents sheets. A sheet's own `contentStyle` would replace a stack's, so don't
-try to add the rail inset through `contentStyle`.
+Add it to every stack that presents sheets. A sheet's own `contentStyle` would replace a stack's, so don't try to add the rail inset through `contentStyle`.
 
 ## Fixed-width content beside the rail
 
-Scale a fixed-width drawing to fit instead of redrawing it, so an exported image (a share card, a
-screenshot) stays the same artwork. Render it unwrapped when it fits, so phones keep the exact same view
-tree (wrapper heights can round differently, which shows up as a 1 px shift on Android):
+Scale a fixed-width drawing to fit instead of redrawing it, so an exported image (a share card, a screenshot) stays the same artwork. Render it unwrapped when it fits, so phones keep the exact same view tree (wrapper heights can round differently, which shows up as a 1 px shift on Android):
 
 ```tsx
 const [rowWidth, setRowWidth] = useState(CARD_WIDTH);
@@ -187,8 +172,7 @@ const scale = Math.min(1, (rowWidth + CONTENT_PADDING - MIN_EDGE_MARGIN) / CARD_
 
 ## Wide sheets on the inner display
 
-When a sheet's row is wider than any phone's (iPhone Pro Max is 440 pt), centre a column the width of the
-content instead of pinning content left of full-width buttons. Only wrap when wide, so phones are unchanged:
+When a sheet's row is wider than any phone's (iPhone Pro Max is 440 pt), centre a column the width of the content instead of pinning content left of full-width buttons. Only wrap when wide, so phones are unchanged:
 
 ```tsx
 const wide = rowWidth > 440 - CONTENT_PADDING * 2;
@@ -197,7 +181,5 @@ const wide = rowWidth > 440 - CONTENT_PADDING * 2;
 
 ## Known gaps
 
-- **The side away from the rail:** UIKit uses a 20 pt margin there on the Duo's outer display; React Native
-  gets no layout-margin value, so a fixed 16 pt margin sits 4 pt off native titles. There is no reliable fix
-  without hard-coding per device.
+- **The side away from the rail:** UIKit uses a 20 pt margin there on the Duo's outer display; React Native gets no layout-margin value, so a fixed 16 pt margin sits 4 pt off native titles. There is no reliable fix without hard-coding per device.
 - **The 24 pt top offset** for custom headers is measured, not read from an API.
