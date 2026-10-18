@@ -44,7 +44,7 @@ Prefer native containers where they fit: Expo Router native stacks and `NativeTa
 ## 3. Folds, hinges and cameras (optional)
 
 - **Reserved regions** (the fold when partly open, the outer and inner cameras) are not part of the safe area. To lay out around them, use `react-native-reserved-regions` (App&Flow): `ReservedRegionsProvider` + `useReservedRegions()` returns `division` and `occlusion` frames in the provider's coordinates. Needs the New Architecture and the iOS 27.1 SDK.
-- **Hinge pose and angle** for effects and interactions (not layout): `react-native-hinges` (`useHinges()`, early alpha).
+- **Hinge angle and status** for effects and interactions (not layout): `expo-hinge` (`npx expo install expo-hinge`). `useHinge()` returns `{ angle, status }` (degrees; `closed`, `partiallyOpen`, `fullyOpen` or `unknown`) or `null` where there's no hinge or the build predates the iOS 27.1 SDK; `getHinge()` and `addHingeListener()` cover non-React code. For a per-view SwiftUI modifier, `@expo/ui` has `onHingeChange`.
 
 ## 4. Test both displays
 
