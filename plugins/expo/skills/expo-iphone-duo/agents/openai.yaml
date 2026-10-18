@@ -1,0 +1,4 @@
+interface:
+  display_name: "Expo iPhone Duo"
+  short_description: "Make an Expo app look right on iPhone Duo: the side rail, asymmetric safe areas and margins, sheets, headers, and testing both displays"
+  default_prompt: "Use $expo-iphone-duo when adapting an Expo app to iPhone Duo, including SDK 58 and Xcode 27.1 build requirements, content under the side rail, full-width bars, custom headers, form sheets, reserved regions, and testing the closed and open displays."

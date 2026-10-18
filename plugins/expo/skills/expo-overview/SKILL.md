@@ -28,6 +28,7 @@ Match the goal to a category, then the skill, then load that leaf's `SKILL.md`.
 **Build the app**
 - `expo-project-structure` — folder layout for a **new** Expo Router project: where screens, components, and config live (never restructure an existing app to match)
 - `expo-native-ui` — screens, styling, semantic colors, native controls, SF Symbols, media, layout
+- `expo-iphone-duo` — iPhone Duo layouts: the side rail, asymmetric safe areas, sheets and headers on both displays
 - `expo-router` — navigation: file-based routes, tabs / stacks / modals / sheets, links, headers
 - `expo-animation` — motion and gestures: Reanimated worklets, Gesture Handler, screen transitions, sheet and press feedback, haptics, and fixing animation that stutters on device
 - `expo-ui` — native UI components via `@expo/ui`: BottomSheet, Picker, Slider, Switch, Menu, Button, FieldGroup (grouped form sections), List / ListItem, and more — real SwiftUI on iOS, Jetpack Compose on Android. The universal layer needs SDK 56+ and runs in Expo Go; the drop-in replacements (`@gorhom/bottom-sheet`, `datetimepicker`, …) and platform-specific layers also exist on SDK 55.
