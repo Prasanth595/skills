@@ -92,10 +92,15 @@ and Split View. Custom JS tab bars and headers have to handle the rail themselve
 Check every screen and sheet **closed and open, in light and dark**, plus Split View if your app supports
 it. Compare with an iPhone build so nothing moves there.
 
-- **Locally:** Xcode 27.1 with the iOS 27.1 runtime has an iPhone Duo simulator. Run a development build
-  against Metro so layout edits reload in seconds, and change the pose with a device controller
-  (agent-device `fold open|closed`, or Argent's `fold`).
-- **On EAS Simulator:** `eas simulator:start --platform ios --device "iPhone Duo"` (see `eas-simulator`).
+For a fast feedback loop, run a **development build against Metro** so layout edits fast-refresh in
+seconds, on either:
+
+- **A local iPhone Duo simulator** (Xcode 27.1 with the iOS 27.1 runtime), or
+- **EAS Simulator**, with `--device "iPhone Duo"` and a development build connected to your Metro (the
+  live-development mode in `eas-simulator`). No local Xcode 27.1 needed.
+
+Change the pose with a device controller (agent-device `fold open|closed`, or Argent's `fold`). Use a full
+build and capture as the final check, not to iterate.
 
 Details, gotchas (black `simctl` screenshots, the first link prompt) and how to measure frames to check
 alignment: [references/testing.md](./references/testing.md).
