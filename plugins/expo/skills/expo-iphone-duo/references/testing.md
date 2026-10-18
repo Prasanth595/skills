@@ -55,3 +55,9 @@ The first time a session opens a custom-scheme link, iOS asks "Open in “App”
 - Custom headers have space above them.
 - Sheets: centred on the inner display; on the outer display, tall sheets clear of the clock and short ones full width; nothing clipped.
 - iPhone and Android screenshots unchanged.
+
+## Reviewing the result
+
+- **Crop to the rail edge.** Overlaps beside the rail (a floating button under the vertical tab bar, a border that stops short) are easy to miss in a full-screen screenshot. Crop the strip next to the rail in both poses and both appearances, and compare it with the default branch.
+- **Measure where it matters.** Check edges against native elements with `agent-device snapshot --raw` frames rather than by eye.
+- **Finish with every screen.** While iterating, check the screens each change touches; before calling it done, review every screen and sheet in both poses, light and dark, and diff iPhone and Android against the default branch. A small diff there is usually noise (timestamps, generated names, a build hash), but look at where it is before dismissing it: a wrapper view can shift a row by 1 px on Android.
