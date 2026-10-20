@@ -120,6 +120,7 @@ Free, open-source Expo SDK and React Native skills.
 | `expo-dev-client` | Development clients (local builds are free; EAS Build/TestFlight is a paid step). |
 | `expo-examples` | The `expo/examples` repo of `with-*` integrations to adapt or scaffold a new project from. |
 | `expo-app-clip` | iOS App Clip targets, AASA files, associated domains, and Smart App Banners. |
+| `expo-iphone-duo` | iPhone Duo layouts: the side rail, asymmetric safe areas and margins, sheets, custom headers, and testing the closed and open displays. |
 | `expo-upgrade` | Expo SDK upgrades, dependency conflicts, deprecated packages, and cache cleanup. |
 | `expo-skill-feedback` | Share what worked or fell short across Expo, its skills, docs, CLIs, or MCP, and control opt-in usage telemetry. |
 
