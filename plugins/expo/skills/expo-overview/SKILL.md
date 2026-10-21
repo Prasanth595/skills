@@ -110,3 +110,10 @@ Apply the rules that match the project and the requested task.
 - A fully-specified task (SDK version pinned, file layout given, libraries named) is
   **not** a reason to skip: the shared rules above still apply — check them, then route
   to the matching leaf skill.
+
+## Submitting Feedback
+If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+```bash
+npx --yes submit-expo-feedback@latest --category skills --subject "expo-overview" "<actionable feedback>"
+```
+Only submit when you have something specific and actionable to report. Include as much relevant context as possible.

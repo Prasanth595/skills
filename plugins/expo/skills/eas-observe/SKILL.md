@@ -36,3 +36,10 @@ The four reference files in `./references/` cover what people typically need thi
 - Third-party integrations: https://docs.expo.dev/eas/observe/integrations/third-party/
 - EAS Update download performance: https://docs.expo.dev/eas/observe/eas-update/
 - Troubleshooting: https://docs.expo.dev/eas/observe/reference/troubleshooting/
+
+## Submitting Feedback
+If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+```bash
+npx --yes submit-expo-feedback@latest --category skills --subject "eas-observe" "<actionable feedback>"
+```
+Only submit when you have something specific and actionable to report. Include as much relevant context as possible.

@@ -99,6 +99,10 @@ Skills come in two groups so the free vs paid boundary stays clear: open-source 
 - **eas-update-insights** - Check EAS Update health, crash rates, adoption, and payload size
 - **eas-simulator** - Run and drive your app on a remote iOS/Android simulator on EAS cloud, from the CLI or an AI agent
 
+## Feedback
+
+Every skill includes instructions to submit specific, actionable feedback with `submit-expo-feedback`.
+
 ## License
 
 MIT

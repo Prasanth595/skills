@@ -164,6 +164,10 @@ Use the plugin for Claude Code or Codex; it stays updated through the plugin mar
 
 Expo documentation, Expo CLI, and EAS CLI are the source of truth. These skills teach agents how to apply Expo guidance in real projects.
 
+## Feedback
+
+Every skill includes instructions to submit specific, actionable feedback with `submit-expo-feedback`.
+
 ## License
 
 MIT
