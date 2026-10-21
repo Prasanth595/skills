@@ -102,18 +102,7 @@ Also add a one-line entry to the `expo-overview` Skill Map
 (`plugins/expo/skills/expo-overview/SKILL.md`) so the router can dispatch to the new skill.
 The `check` workflow (`bun scripts/check-overview-routing.ts`) enforces this.
 
-### 9. Add the feedback instructions
-
-Every `SKILL.md` ends with a canonical feedback block whose subject matches the skill name. Add or
-refresh it automatically:
-
-```bash
-bun scripts/check-skill-limits.ts --fix-feedback
-```
-
-CI fails if the block is missing, has drifted, or names the wrong skill.
-
-### 10. Bump the plugin version
+### 9. Bump the plugin version
 
 Bump `version` in **all four** manifests together - they must match each other and be greater
 than `main`. CI enforces this.
@@ -133,7 +122,7 @@ bun scripts/check-plugin-version-bump.ts --set-version 1.10.1
 Run it with `--help` for the full usage, or `bun test scripts/check-plugin-version-bump.test.ts` to exercise
 every case (the manifests are restored afterward).
 
-### 11. Validate before opening a PR
+### 10. Validate before opening a PR
 
 ```bash
 claude plugin validate ./plugins/expo
@@ -145,14 +134,14 @@ Also run `python3 -m json.tool <file>` on any JSON you edited, and if the skill 
 run that skill's own validation.
 
 `check-skill-limits.ts` enforces more than the size caps: the naming rule (step 2), the paid
-costs callout (step 4), the Codex agent file (step 7), the `skills.sh.json` grouping (step 8),
-and the feedback block (step 9) all fail CI when violated.
+costs callout (step 4), the Codex agent file (step 7), and the `skills.sh.json` grouping (step 8)
+all fail CI when violated.
 
 ### Syncing `expo-animation`
 
 `expo-animation` mirrors `skills/animate-expo` from `emilkowalski/skills`. Pull upstream changes
 with `bun scripts/sync-animate-expo.ts`; use `--check` to detect drift without writing. The script
-preserves this repository's skill name, collaboration notice, and feedback block.
+preserves this repository's skill name and collaboration notice.
 
 ### Conventions
 

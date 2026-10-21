@@ -201,11 +201,10 @@ Follow the full guide in `CONTRIBUTING.md`. In short:
 1. Pick the name per the naming rule: `expo-*` for open-source framework skills, `eas-*` for paid EAS service skills.
 2. Create `plugins/expo/skills/<skill-name>/SKILL.md` with a description that says what the skill does and when to use it. Paid skills open with a costs/plan-limits callout.
 3. Add focused reference files under `references/` when the skill needs more detail than belongs in the main `SKILL.md`, scripts under `scripts/` only for reusable logic, and `agents/openai.yaml` for Codex triggering.
-4. Add the canonical feedback block with `bun scripts/check-skill-limits.ts --fix-feedback`; CI verifies that its subject matches the skill name.
-5. Register the skill in every catalog: `skills.sh.json`, `plugins/expo/README.md`, `plugins/expo/skills/README.md`, and the root `README.md`.
-6. Add a one-line entry for the skill to the `expo-overview` Skill Map (`plugins/expo/skills/expo-overview/SKILL.md`) so the router can dispatch to it. This is enforced by the `check` workflow (`bun scripts/check-overview-routing.ts`).
-7. Bump the version in all four plugin manifests together with `bun scripts/check-plugin-version-bump.ts --set-version <version>` (they must match and be greater than main; CI-enforced).
-8. Keep the skill under the existing `expo` plugin unless there is a clear distribution reason to create a new plugin.
+4. Register the skill in every catalog: `skills.sh.json`, `plugins/expo/README.md`, `plugins/expo/skills/README.md`, and the root `README.md`.
+5. Add a one-line entry for the skill to the `expo-overview` Skill Map (`plugins/expo/skills/expo-overview/SKILL.md`) so the router can dispatch to it. This is enforced by the `check` workflow (`bun scripts/check-overview-routing.ts`).
+6. Bump the version in all four plugin manifests together with `bun scripts/check-plugin-version-bump.ts --set-version <version>` (they must match and be greater than main; CI-enforced).
+7. Keep the skill under the existing `expo` plugin unless there is a clear distribution reason to create a new plugin.
 
 ## Testing Plugins
 
@@ -268,9 +267,3 @@ codex plugin marketplace add expo/skills --ref main
 - Include a brief `README.md` for each plugin.
 - Keep references close to the skill that uses them.
 - Avoid broad rewrites when updating a skill; preserve the skill's existing scope and trigger intent.
-
-## Usage Telemetry & Feedback
-
-Telemetry is anonymous, **opt-in, and off by default** — nothing is sent until the user enables it with `node plugins/expo/skills/expo-skill-feedback/scripts/telemetry.cjs --on` or `EXPO_SKILLS_TELEMETRY=1` (`--off` / `=0` / `DO_NOT_TRACK=1` disable; CI never sends). When enabled, the plugin-level hook sends automatic `skill_invoked` events on **Claude Code only**. The gate is `telemetryActive()` in `telemetry_common.cjs`.
-
-For contributors: new skills need no telemetry edits. They do need the canonical feedback footer; run `bun scripts/check-skill-limits.ts --fix-feedback`, and CI will enforce it. Codex and Cursor cannot host plugin hooks (verified against their sources; don't re-investigate), so they ship no automatic telemetry hooks.

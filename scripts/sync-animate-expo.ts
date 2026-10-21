@@ -11,17 +11,10 @@ const DEFAULT_REF = "main";
 const HEADING = "# Building Animations in Expo";
 const ATTRIBUTION =
   "This skill was created in collaboration with [Emil Kowalski](https://github.com/emilkowalski) and can also be found in the [emilkowalski/skills](https://github.com/emilkowalski/skills) repository, along with other useful animation skills.";
-const FEEDBACK = `## Submitting Feedback
-If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
-\`\`\`bash
-npx --yes submit-expo-feedback@latest --category skills --subject "expo-animation" "<actionable feedback>"
-\`\`\`
-Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
-If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.`;
 const USAGE = `Usage: bun scripts/sync-animate-expo.ts [options]
 
 Sync Emil Kowalski's animate-expo skill into the Expo repository while preserving
-the Expo-specific skill name, attribution, and feedback block.
+the Expo-specific skill name and attribution.
 
 Options:
   --check       Report drift without writing files.
@@ -123,9 +116,7 @@ ${HEADING}
 
 ${ATTRIBUTION}
 
-${bodyAfterHeading}
-
-${FEEDBACK}`);
+${bodyAfterHeading}`);
 }
 
 function updateFile(path: string, expected: string, check: boolean): boolean {
