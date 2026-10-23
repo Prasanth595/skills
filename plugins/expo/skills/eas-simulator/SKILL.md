@@ -33,7 +33,7 @@ if the user set a limit you would go past, or if the work grows beyond what they
 - **Run every `eas` command via `npx --yes eas-cli@latest …`** — guarantees a CLI new enough to have `simulator:*` (a global `eas` is often too old), and `--yes` skips npx's prompt. (Bare `eas` is fine if `eas --version` is current.)
 - **Authenticated.** Interactive machine → `npx --yes eas-cli@latest login`. **Cloud sandbox / CI / headless agent has no browser login — set `EXPO_TOKEN`** (expo.dev → Account → Access Tokens) in the env instead. Verify either way with `npx --yes eas-cli@latest whoami`.
 - Run from an Expo **project directory.** A fresh app needs one-time setup: `npx --yes eas-cli@latest init` to create/link the project (when there's no `projectId`), and **set `ios.bundleIdentifier`** in app config if it's missing — a fresh `create-expo-app` often has none, and `prebuild`/`eas build` need it (they prompt or fail without it; e.g. `dev.<owner>.<slug>`). Read current config with `npx expo config --json` (it may live in `app.config.js`). The first Mode-C run is slow (native build); later runs reuse it.
-- A controller to drive the device. This skill uses **agent-device** (open source, MIT), run on demand via `npx agent-device@latest` — nothing globally installed. **Appium** and **argent** are alternative automation interfaces; `web-preview-only` has no automation interface. See [references/controllers.md](./references/controllers.md).
+- A controller to drive the device. This skill uses **agent-device** (open source, MIT), run on demand via `npx agent-device@latest` — nothing globally installed. **Appium** and **argent** are alternative automation interfaces. On iOS, `simulator:control` also runs actions exposed by the preview host, including in `web-preview-only` sessions; that type has no separate automation daemon. See [references/controllers.md](./references/controllers.md).
 - **`.env.eas-simulator`** is written/managed by eas-cli (not this skill): it holds the session id (`EAS_SIMULATOR_SESSION_ID`) + the daemon URL/**token**, so `get`/`stop`/`exec` default to that session (usually **omit `--id`**; pass `--id <id>` to target another). It carries a **token → keep it gitignored** (eas-cli marks it "do not commit" but may not add the ignore rule, and a fresh app's `.gitignore` won't cover it — add `.env.eas-simulator` if missing).
 - **The command blocks assume a POSIX shell** (bash/zsh) — `printf`, `lsof`, `$(seq …)` loops won't run in cmd/PowerShell. On Windows, run them in WSL or Git Bash, or translate as you go (the `eas-cli`/`agent-device` invocations themselves are cross-platform).
 
@@ -41,7 +41,8 @@ if the user set a limit you would go past, or if the work grows beyond what they
 
 - `--max-duration-minutes N` is the hard automatic-stop deadline. Any plan can set it, up to the plan limit (40 minutes on Free, 115 on paid plans). The timer starts when the session is ready.
 - `--max-idle-time-minutes N` stops a session after that many inactive minutes. Omitted means **no idle timeout**: the session runs until its maximum duration or an explicit stop.
-- **Controller activity resets the idle timer** (`agent-device`, `argent`, and Appium commands, which are recorded as session events with producer `appium`). **Browser-preview activity does not reset it.** For a user-driven browser preview, rely on the maximum duration, not idle time, to bound the session.
+- **Controller activity resets the idle timer** (`agent-device`, `argent`, and Appium commands, recorded as session events with producer `appium`). On iOS automation sessions using the current worker path, serve-sim preview input and host actions also reset it; simply watching the video does not. Android previews and older workers do not report this activity. Use the maximum duration as the hard lifetime bound; omit the idle timeout when the requested preview must remain available without input.
+- `npx --yes eas-cli@latest account:usage` shows EAS Simulator minutes for the selected account on current CLIs.
 
 ## Check availability first
 
@@ -61,7 +62,7 @@ If it's **not** available, don't call `simulator:start` (it will fail). Instead,
 
 ## The core loop (always the same)
 
-A session is: **start → (install your app) → drive → stop.** `eas-cli` owns the *session*; the device *verbs* (open/tap/screenshot) come from the controller, which `npx --yes eas-cli@latest simulator:exec` runs for you with the session's connection env loaded.
+A session is: **start → (install your app) → drive → stop.** `eas-cli` owns the *session*; the controller supplies the interactive device verbs, and `npx --yes eas-cli@latest simulator:exec` runs it with the session's connection env loaded. For iOS host actions such as screenshots, clipboard, and settings, `simulator:control` can also act directly; see [remote controls](./references/remote-controls.md).
 
 ```bash
 # 1. Start a session (boots the remote sim + agent-device daemon; writes .env.eas-simulator).
@@ -86,11 +87,11 @@ npx --yes eas-cli@latest simulator:stop
 printf '# managed by eas-cli\n' > .env.eas-simulator
 ```
 
-To **watch** it live, hand the user the `webPreviewUrl` that `start` prints (in `--json`, `remoteConfig.webPreviewUrl`; for `web-preview-only` sessions, `remoteConfig.previewUrl`). All current session types include a browser preview, on iOS and Android; `agent-device`, `appium`, and `argent` also provide automation, while `web-preview-only` provides no automation interface. On Android, the expo.dev session page does not show the preview inline yet: **Open preview** opens it in a new tab. Android support is in development, so some iOS features may not work there. **This URL is for the *user's* browser — you cannot open it for them, and it must never touch the sim:**
+To **watch** it live, hand the user the `webPreviewUrl` that `start` prints (in `--json`, `remoteConfig.webPreviewUrl`; for `web-preview-only` sessions, `remoteConfig.previewUrl`). All current session types include a browser preview, on iOS and Android; `agent-device`, `appium`, and `argent` also provide automation, while `web-preview-only` has no separate automation daemon but supports the iOS host actions exposed through `simulator:control`. On Android, the expo.dev session page does not show the preview inline yet: **Open preview** opens it in a new tab. Android support is in development, so some iOS features may not work there. **This URL is for the *user's* browser — you cannot open it for them, and it must never touch the sim:**
 - **"Open it here" (Cursor/VS Code)** → print the URL on its own line and tell the user to open Simple Browser (`Cmd/Ctrl+Shift+P` → "Simple Browser: Show") and paste it. Then **stop**: do not shell out to a system browser or a Cursor/VS Code URL handler, and do not ask "did a tab appear?" — you can't confirm it, the handoff is done.
 - **Never `open` the `webPreviewUrl` on the sim.** It's a browser preview, not a deep link and not an `agent-device open` argument; routing it to the device renders a browser-in-a-browser (a real past failure).
 - **Headless agent** (no display) → just return the URL as the deliverable.
-- **Keeping it alive for the user to drive** → use `--max-duration-minutes N` (up to the plan limit). Browser-preview activity does not reset `--max-idle-time-minutes`, so idle timeout is not a reliable lifetime bound for this case. Tell the user when the session expires, using the CLI's reported duration or expiry. Keep it running for the requested preview; stop sessions created for one-shot tasks when the task finishes.
+- **Keeping it alive for the user to drive** → use `--max-duration-minutes N` (up to the plan limit). Merely viewing the video does not reset the idle timer; input reporting also varies by platform and worker. Follow [Session lifetime](#session-lifetime) when choosing an idle timeout. Tell the user when the session expires, using the CLI's reported duration or expiry. Keep it running for the requested preview; stop sessions created for one-shot tasks when the task finishes.
 
 `start` also prints a job-run URL.
 
@@ -135,6 +136,7 @@ copy of the CLI surface. Keep non-obvious behavioral guidance from this skill—
 |---|---|
 | `npx --yes eas-cli@latest simulator:availability [--json] [--non-interactive]` | Check access without creating a session. |
 | `npx --yes eas-cli@latest simulator:start --platform ios\|android --name "<description>" [flags]` | Create a session; boot the sim + selected interface; write `.env.eas-simulator` by default; print the preview + job-run URLs. **Always pass `--name`**. `--json` does not suppress the dotenv; use `--out-config-type env` when no file should be written (it prints only the controller `export` lines, without `EAS_SIMULATOR_SESSION_ID`, so pass `--id` to `get`/`stop`/`events`). |
+| `npx --yes eas-cli@latest simulator:control [action] [values…] --id <id>` | Discover and run actions on a live iOS preview host (CLI ≥ 25.2.0). Use per-action `--help`; `--output` saves returned files locally. See [remote controls](./references/remote-controls.md). |
 | `npx --yes eas-cli@latest simulator:exec <cmd> [args…]` | Load `.env.eas-simulator`, then run `<cmd>` with that env. The bridge to the controller. |
 | `npx --yes eas-cli@latest simulator:get [--id <id>] [--json] [--non-interactive]` | Session status + connection details, including the session name. **Use this to confirm readiness** (see *Operating principles*). |
 | `npx --yes eas-cli@latest simulator:list [filters] [--limit N] [--after <cursor>] [--json]` | List and paginate project sessions; filter by status, type, platform, name prefix, and tags. |
@@ -204,7 +206,7 @@ The non-obvious mental model worth internalizing. Specific error→fix lookups (
    - **build fits intent** — a **release build can't live-reload**; if live edits are wanted and a release build is installed, **install the dev build, don't reconnect**.
 
    If current code isn't rendering after your **first** connect, stop poking live state: **reset to baseline** (stop session → clear dotenv → kill your Metro) and redo the mode **once**; a second failure → stop and report. Never restart Metro in place, reconnect more than once, rebuild the native client to fix a JS/connection problem, or surface a preview URL while state is unknown. (A daemon drop — `ERR_NGROK_3200` / `Remote daemon is unavailable` — is the same: reset, don't retry.)
-2. **`exec` is a wrapper, not a driver.** `simulator:exec` loads `.env.eas-simulator` and spawns the command you pass; the device verbs come from the controller (`npx agent-device@latest`). There is no `simulator:tap`.
+2. **`exec` is a wrapper, not a driver.** `simulator:exec` loads `.env.eas-simulator` and spawns the command you pass; the device verbs come from the controller (`npx agent-device@latest`). There is no `simulator:tap`; `simulator:control` is a separate iOS host-action client.
 3. **Act immediately; don't park an idle session.** Sessions are short-lived — install and drive right after `start`. Leaving one idle drops the tunnel/daemon (→ reset, per #1).
 4. **Stop sessions you created on completion or failure and reset the dotenv.** `--non-interactive` does not stop a session when your task ends. For a requested live preview, follow the duration guidance above. Poll the existing session during a slow boot; starting another creates an extra session and overwrites the dotenv's session id.
 5. **Screenshot only the correct, fresh build.** Mode C only after the dev client connects to Metro; A/B only from a build matching current source — reusing a pre-existing build is the #1 "my edits don't show" cause (see the build caveat above). (`9:41` in the status bar is the sim default, not staleness.)
@@ -222,6 +224,7 @@ printf '# managed by eas-cli\n' > .env.eas-simulator   # clear the stale session
 ## References
 
 - [references/run-your-app.md](./references/run-your-app.md) — full command sequences for modes A, B, and C (read before running a mode).
+- [references/remote-controls.md](./references/remote-controls.md) — direct iOS actions, local file transfers, and embedding the preview.
 - [references/controllers.md](./references/controllers.md) — agent-device verb reference and the `argent` alternative.
 - [references/logs-and-crashes.md](./references/logs-and-crashes.md) — device logs and crash reports from an iOS session (read when the app crashes or misbehaves).
 - [references/troubleshooting.md](./references/troubleshooting.md) — concrete errors and fixes.

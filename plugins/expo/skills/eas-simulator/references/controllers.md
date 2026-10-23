@@ -1,13 +1,13 @@
 # Controllers: agent-device, Appium, and argent
 
-`eas-cli` has no device verbs — it manages the *session*. Automation commands come from the interface selected by `simulator:start --type`:
+`eas-cli` manages the session and exposes iOS preview-host actions through [`simulator:control`](./remote-controls.md). For the interactive controller workflow, select an interface with `simulator:start --type`:
 
 - `agent-device` (Callstack, MIT) — used throughout this skill; runs on demand via `npx agent-device@latest`, nothing installed globally.
 - `appium` — exposes `APPIUM_URL` and `APPIUM_CAPS` for an Appium client.
 - `argent` (Software Mansion) — a capable alternative controller; check its license for your use.
-- `web-preview-only` — browser preview with no programmatic control.
+- `web-preview-only` — browser preview without a separate automation daemon; iOS host actions remain available through `simulator:control` when the host supports them.
 
-All four types include a web preview. Before setting `--max-idle-time-minutes`, follow [Session lifetime](../SKILL.md#session-lifetime); browser-preview activity does not reset the timer.
+All four types include a web preview. Before setting `--max-idle-time-minutes`, follow [Session lifetime](../SKILL.md#session-lifetime); iOS preview input can reset the timer on current workers, but watching the video does not; Android and older workers differ.
 
 ## Appium
 
