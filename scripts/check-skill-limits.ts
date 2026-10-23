@@ -69,7 +69,9 @@ function loadCatalogGroups(): Map<string, "framework" | "paid" | "experimental">
   return groups;
 }
 
-const skills = findSkillFiles("plugins");
+const skills = ["skills", "experimental-skills"].flatMap((directory) =>
+  existsSync(directory) ? findSkillFiles(directory) : []
+);
 
 if (FIX_FEEDBACK) {
   for (const path of skills) {
@@ -126,7 +128,7 @@ for (const path of skills) {
 
 for (const [skill] of catalogGroups) {
   if (!seenDirs.has(skill))
-    errors.push(`skills.sh.json: lists "${skill}" but no plugins/*/skills/${skill}/SKILL.md exists`);
+    errors.push(`skills.sh.json: lists "${skill}" but no skills/${skill}/SKILL.md or experimental-skills/${skill}/SKILL.md exists`);
 }
 
 if (errors.length === 0) {

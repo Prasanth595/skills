@@ -1,0 +1,59 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "expo",
+  "version": "2.0.0",
+  "description": "Official Expo skills and MCP tools for building, deploying, upgrading, and debugging Expo and React Native apps.",
+  "author": {
+    "name": "Expo Team",
+    "email": "support@expo.dev",
+    "url": "https://expo.dev"
+  },
+  "homepage": "https://docs.expo.dev/skills/",
+  "repository": "https://github.com/expo/skills",
+  "license": "MIT",
+  "keywords": [
+    "expo",
+    "react-native",
+    "expo-router",
+    "eas",
+    "mobile",
+    "ios",
+    "android",
+    "deployment",
+    "upgrades",
+    "native-modules",
+    "app-clips",
+    "brownfield",
+    "eas-update",
+    "mcp"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Expo",
+        "shortDescription": "Build and ship mobile apps",
+        "longDescription": "Build mobile and web apps with Expo and React Native. Includes official skills for Expo Router, native UI, animations, data fetching, SDK upgrades, native modules, and EAS deployment and operations. Connect the Expo MCP server to work with documentation, builds, workflows, and project data using the tools available to your account. Code changes and local device verification require project access and a compatible execution environment.",
+        "developerName": "Expo",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write",
+          "MCP"
+        ],
+        "websiteURL": "https://expo.dev/",
+        "privacyPolicyURL": "https://expo.dev/privacy",
+        "termsOfServiceURL": "https://expo.dev/terms",
+        "defaultPrompt": [
+          "Build a mobile app with Expo and React Native",
+          "Investigate why my latest EAS build failed",
+          "Help me upgrade this app to the latest Expo SDK"
+        ],
+        "composerIcon": "./assets/expo.png",
+        "logo": "./assets/expo.png",
+        "screenshots": [],
+        "brandColor": "#000020",
+        "supportURL": "https://github.com/expo/skills/issues"
+      }
+    }
+  }
+}

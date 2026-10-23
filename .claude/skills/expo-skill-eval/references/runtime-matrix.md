@@ -1,6 +1,6 @@
 # Runtime applicability matrix
 
-Which `plugins/expo/skills/*` skills can be evaluated at which level. Consult this before writing eval cases — putting `runtime.mode: "expo-go"` on a skill that needs custom native code wastes a device cycle and produces a misleading FAIL.
+Which `skills/*` skills can be evaluated at which level. Consult this before writing eval cases — putting `runtime.mode: "expo-go"` on a skill that needs custom native code wastes a device cycle and produces a misleading FAIL.
 
 Modes:
 

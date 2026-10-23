@@ -3,7 +3,7 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const SKILLS_DIR = "plugins/expo/skills";
+const SKILLS_DIR = "skills";
 const ROUTER_SKILL = "expo-overview";
 const ROUTER_PATH = join(SKILLS_DIR, ROUTER_SKILL, "SKILL.md");
 
@@ -37,11 +37,14 @@ const router = readFileSync(ROUTER_PATH, "utf8");
 
 // A skill is "routed" when it appears as an inline-code token: `skill-name`.
 const missing = skillNames.filter((name) => !router.includes(`\`${name}\``));
+const routed = [...router.matchAll(/^- `((?:expo|eas)-[a-z0-9-]+)`/gm)].map((match) => match[1]);
+const unknown = [...new Set(routed.filter((name) => !skillNames.includes(name)))];
+const success = missing.length === 0 && unknown.length === 0;
 
 const markdown = [
   "## Expo overview routing check",
   "",
-  missing.length === 0
+  success
     ? `Passed. All ${skillNames.length} skills are referenced in \`${ROUTER_PATH}\`.`
     : "Failed. New skills must be added to the `expo-overview` Skill Map so the router can dispatch to them.",
   ...(missing.length === 0
@@ -54,6 +57,14 @@ const markdown = [
         "",
         `Add each one as an inline-code entry (\`\`${"skill-name"}\`\`) under a category in \`${ROUTER_PATH}\`.`,
       ]),
+  ...(unknown.length === 0 ? [] : [
+    "",
+    "Router entries without a bundled skill:",
+    "",
+    ...unknown.map((name) => `- \`${name}\``),
+    "",
+    "Remove stale entries or add the missing skill to the package.",
+  ]),
 ].join("\n");
 
-complete(missing.length === 0, markdown);
+complete(success, markdown);

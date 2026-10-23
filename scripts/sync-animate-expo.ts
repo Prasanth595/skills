@@ -6,11 +6,13 @@ import { fileURLToPath } from "node:url";
 
 const UPSTREAM_REPOSITORY = "emilkowalski/skills";
 const UPSTREAM_SKILL_DIRECTORY = "skills/animate-expo";
-const LOCAL_SKILL_DIRECTORY = "plugins/expo/skills/expo-animation";
+const LOCAL_SKILL_DIRECTORY = "skills/expo-animation";
 const DEFAULT_REF = "main";
 const HEADING = "# Building Animations in Expo";
 const ATTRIBUTION =
   "This skill was created in collaboration with [Emil Kowalski](https://github.com/emilkowalski) and can also be found in the [emilkowalski/skills](https://github.com/emilkowalski/skills) repository, along with other useful animation skills.";
+const EXECUTION_GUIDANCE =
+  "Use project/terminal or matching MCP tools when available; otherwise provide instructions and identify unexecuted steps. If `expo-overview` is installed, read its [execution guidance](../expo-overview/references/execution-environments.md) before acting.";
 const FEEDBACK = `## Submitting Feedback
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
 \`\`\`bash
@@ -21,7 +23,7 @@ If an agent repeatedly fails at an Expo task or the user has to step in, submit 
 const USAGE = `Usage: bun scripts/sync-animate-expo.ts [options]
 
 Sync Emil Kowalski's animate-expo skill into the Expo repository while preserving
-the Expo-specific skill name, attribution, and feedback block.
+the Expo-specific skill name, attribution, execution guidance, and feedback block.
 
 Options:
   --check       Report drift without writing files.
@@ -97,7 +99,7 @@ function extractVersion(path: string): string {
   );
 }
 
-function renderSkill(upstream: string, version: string): string {
+export function renderSkill(upstream: string, version: string): string {
   const match = upstream.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match)
     throw new Error("Upstream SKILL.md does not have valid frontmatter.");
@@ -111,6 +113,15 @@ function renderSkill(upstream: string, version: string): string {
     throw new Error(`Upstream SKILL.md must start with \"${HEADING}\".`);
   }
   const bodyAfterHeading = body.slice(HEADING.length).replace(/^\n+/, "");
+  // Keep the shared chat/local execution rule when replacing upstream prose.
+  // Place it before the first section, matching the other Expo leaf skills.
+  const upstreamBody = bodyAfterHeading.replaceAll(EXECUTION_GUIDANCE, "").trim();
+  const firstSection = upstreamBody.search(/^## /m);
+  const bodyWithGuidance = [
+    firstSection === -1 ? upstreamBody : upstreamBody.slice(0, firstSection).trimEnd(),
+    EXECUTION_GUIDANCE,
+    firstSection === -1 ? "" : upstreamBody.slice(firstSection),
+  ].filter(Boolean).join("\n\n");
 
   return normalize(`---
 name: expo-animation
@@ -123,7 +134,7 @@ ${HEADING}
 
 ${ATTRIBUTION}
 
-${bodyAfterHeading}
+${bodyWithGuidance}
 
 ${FEEDBACK}`);
 }
@@ -180,7 +191,9 @@ async function main() {
   if (options.check) process.exit(1);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

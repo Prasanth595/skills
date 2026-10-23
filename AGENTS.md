@@ -1,308 +1,101 @@
-# Expo Skills Repository
+# Expo Plugin Repository
 
-This repository contains official Expo AI agent skills. Codex and other Agent Plugins clients load each plugin from a root `plugin.json` ([Agent Plugins](https://agent-plugins.org/) 1.0.0). Grok uses that root manifest when it is present. Claude Code and Cursor read `.claude-plugin/plugin.json`. The skills should stay useful to any agent that can consume `SKILL.md` files.
+This repository is the official Expo plugin. It ships shared Agent Skills and a connection to Expo's hosted MCP server. Publish through the clients' official directories; this repository does not host marketplace catalogs or MCP server implementation code.
 
-## Repository Structure
+## Structure
 
-```
-.claude-plugin/
-  marketplace.json          # Claude Code and Cursor marketplace catalog
-.agents/
-  plugins/
-    marketplace.json        # Codex marketplace catalog
-plugins/
-  expo/
-    plugin.json             # Agent Plugins manifest (Codex and other compatible clients)
-    mcp.json                # Agent Plugins MCP configuration
-    .claude-plugin/
-      plugin.json           # Claude Code and Cursor plugin manifest
-    .mcp.json               # Claude Code, Grok, and Cursor MCP configuration
-    skills/
-      README.md             # Grouped index of all skills
-      skill-name/
-        SKILL.md            # Main skill file
-        references/         # Optional supporting documentation
-        scripts/            # Optional utility scripts
-        agents/
-          openai.yaml       # Codex trigger metadata
-    README.md               # Plugin documentation
-README.md                   # User-facing installation instructions
-CONTRIBUTING.md             # Contributor guidance (adding skills, naming, free vs paid)
-skills.sh.json              # skills.sh catalog groupings
-scripts/                    # CI checks (skill limits, plugin version bump)
+```text
+plugin.json                     # Portable Agent Plugins manifest
+mcp.json                        # Portable MCP configuration (streamable-http)
+.mcp.json                       # Native MCP configuration (http)
+.claude-plugin/plugin.json      # Claude and Cursor manifest
+skills/
+  README.md                     # Stable skill index
+  <skill-name>/
+    SKILL.md
+    references/                 # Optional supporting documentation
+    scripts/                    # Optional reusable helpers
+    agents/openai.yaml          # Codex trigger metadata
+experimental-skills/            # Explicit opt-in skills, excluded from the plugin
+assets/expo.png                  # Shared listing icon
+README.md                       # Installation, skills, execution and data disclosure
+CONTRIBUTING.md                  # Contribution guide
+skills.sh.json                  # Stable and experimental catalog groups
+docs/publishing.md              # Release handoff and source-layout migration
+docs/testing.md                 # Manual client acceptance cases
+scripts/                        # Validation, packaging, evaluation tooling
+tests/                          # Maintainer fixtures, excluded from upload ZIP
 ```
 
-Both marketplaces expose the active `expo` and `expo-experiments` plugins. Entry names match the plugin manifest names. Do not add compatibility aliases.
+`skills/` is the only stable skill root. Keep experimental skills outside it until their API is ready. Do not introduce a second plugin wrapper or restore root marketplace catalogs without an explicit distribution requirement.
 
-## Plugin Manifests
+## Manifests and MCP
 
-The `expo` plugin carries two manifests that share one `version`. CI rejects a skill or manifest change that does not bump them together. `expo-experiments` ships the same pair.
+- Keep the name `expo`, version, description, author, repository, and license consistent across both manifests. Version changes must exceed the base branch's version. `bun scripts/check-plugin-version-bump.ts --set-version <version>` updates them together.
+- Root `plugin.json` follows Agent Plugins 1.0.0. Its schema is closed: the permitted top-level fields are `$schema`, `name`, `version`, `description`, `author`, `homepage`, `repository`, `license`, `keywords`, and `extensions`. It discovers `skills/` and `mcp.json` implicitly; do not add native `skills`, `mcpServers`, or `displayName` fields to it.
+- OpenAI listing metadata lives only under `extensions.com.openai.interface` in the portable manifest. Do not restore separate Codex, Cursor, or Grok manifests.
+- Codex and other Agent Plugins clients load `plugin.json` and `mcp.json`. Claude loads `.claude-plugin/plugin.json` and `.mcp.json`. Cursor falls back to the Claude manifest and reads `.mcp.json` before `mcp.json`; Grok uses the root manifest and `.mcp.json`. Claude and Cursor discover `skills/` by default; keep explicit `skills` and `mcpServers` overrides out of the Claude manifest. Keep any component paths relative to the plugin root.
+- Both MCP files must register the same `expo` endpoint, `https://mcp.expo.dev/mcp`. The transport names differ by schema: `streamable-http` in `mcp.json`, `http` in `.mcp.json`.
+- Do not include credentials, OAuth tokens, `.app.json`, local hooks, or reviewer-account secrets in a public package. Expo uses the direct MCP submission route.
+- Directory publication, publisher/domain verification, authenticated testing, and hosted server updates happen outside this repository. Never claim a local validation proves directory approval or authenticated runtime compatibility.
 
-| Manifest | Who reads it |
-| --- | --- |
-| `plugins/expo/plugin.json` | Codex, other [Agent Plugins](https://agent-plugins.org/) clients, and Grok when this file exists |
-| `plugins/expo/.claude-plugin/plugin.json` | Claude Code and Cursor |
+## Skill conventions
 
-Claude Code reads `.claude-plugin/plugin.json` and `.mcp.json`. It does not read the root `plugin.json`. Grok prefers the root `plugin.json` when that file exists, and still loads MCP from `.mcp.json`. If the root manifest is absent, Grok uses the Claude manifest. Cursor looks for `.cursor-plugin/plugin.json` first, then the Claude manifest, then the root manifest, and stops at the first file that parses. This repo ships no Cursor manifest, so Cursor stops on the Claude one. That manifest does not list skills, so Cursor discovers `skills/`. For MCP, Cursor reads `.mcp.json` before `mcp.json` and keeps the first `expo` server.
-
-### Agent Plugins manifest (`plugin.json`)
-
-This is the manifest Codex and every other Agent Plugins client reads. Its schema is **closed** - the only permitted top-level fields are `$schema`, `name`, `version`, `description`, `author`, `homepage`, `repository`, `license`, `keywords`, and `extensions`. Component locations are fixed and cannot be overridden: skills come from `skills/`, MCP servers from `mcp.json`.
-
-```json
-{
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "Brief description of the plugin",
-  "author": {
-    "name": "Expo Team",
-    "email": "support@expo.dev",
-    "url": "https://expo.dev"
-  },
-  "license": "MIT",
-  "extensions": {
-    "com.openai": {
-      "interface": {
-        "displayName": "Expo Plugin"
-      }
-    }
-  }
-}
-```
-
-`$schema` and `name` are required. Client-specific data goes under a reverse-domain namespace in `extensions`; `com.openai` is Codex's namespace, and Codex reads only `interface`, `apps`, and `hooks` from it. A field outside the permitted list is a schema violation, so do not add `skills`, `mcpServers`, or a top-level `displayName`.
-
-The MCP configuration is a sibling `mcp.json` with its own `$schema`. Remote servers use `"type": "streamable-http"`. `"http"` is not a valid Agent Plugins transport.
-
-Claude Code, Grok, and Cursor keep using `.mcp.json`, which stays on `"type": "http"`. Codex and other Agent Plugins clients load the root `mcp.json`.
-
-```json
-{
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
-  "mcpServers": {
-    "expo": {
-      "type": "streamable-http",
-      "url": "https://mcp.expo.dev/mcp"
-    }
-  }
-}
-```
-
-### Claude Code manifest (`.claude-plugin/plugin.json`)
-
-Claude Code is not an Agent Plugins client. It reads its own manifest and its own `.mcp.json`, and ignores the root `plugin.json`. Cursor stops on the first manifest that parses, so in this repo it reads the Claude manifest and loads MCP from `.mcp.json` before `mcp.json`. Grok prefers the root `plugin.json` when that file exists and loads MCP from `.mcp.json`.
-
-```json
-{
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "Brief description of the plugin",
-  "author": {
-    "name": "Expo Team",
-    "email": "support@expo.dev"
-  }
-}
-```
-
-Only `name` is required. `version`, `description`, and `author` are optional.
-
-## Skill Files
-
-Skills teach agents how to perform specific Expo tasks. Each skill has a `SKILL.md` file with YAML frontmatter:
+Each `SKILL.md` has YAML frontmatter:
 
 ```markdown
 ---
-name: skill-name
+name: expo-example
 description: What the skill does and when to use it.
 version: 1.0.0
 license: MIT
 ---
 
-# Skill Title
-
-Skill content goes here...
+# Example
 ```
 
-Frontmatter fields:
+- Use kebab-case names up to 64 characters: `expo-*` for open-source framework guidance, `eas-*` for paid EAS services.
+- Descriptions must explain natural triggers and stay under 1024 characters. Keep the body under 500 lines.
+- Paid skills open with a costs/plan-limits callout. See `CONTRIBUTING.md` for the free/paid boundary.
+- Keep detailed material in nearby `references/`; reusable code belongs in `scripts/`. Reference packaged files with relative paths.
+- Preserve each skill's scope and trigger intent. Avoid broad unrelated rewrites.
+- Include `agents/openai.yaml` with the display name, short description, and prompt using `$<skill-name>`.
+- Before execution, use the shared guidance in `skills/expo-overview/references/execution-environments.md`. Check actual client tools, project access, and authentication; a connected MCP server does not imply a local terminal or CLI login.
+- Keep the canonical feedback footer. Run `bun scripts/check-skill-limits.ts --fix-feedback`; CI verifies the subject matches the skill name.
+- Use MIT licensing and `@expo.io` or `@expo.dev` author addresses.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Skill identifier, lowercase with hyphens, max 64 chars |
-| `description` | Yes | Natural-language trigger description, max 1024 chars |
-| `allowed-tools` | No | Tools Claude can use without permission, for example `"Read, Grep, Bash(node:*)"` |
-| `version` | No | Skill version |
-| `license` | No | License identifier |
+## Adding a skill
 
-Skill guidelines:
+1. Follow `CONTRIBUTING.md`; create `skills/<skill-name>/SKILL.md` and focused supporting files.
+2. Add its Codex metadata and canonical feedback footer.
+3. Register it in `skills.sh.json`, `skills/README.md`, and `README.md`.
+4. Add an entry to the `expo-overview` Skill Map. CI checks both missing and dangling routes.
+5. Bump both plugin versions together and validate the installed package, not just the source files.
 
-- Name skills `expo-*` (open-source framework) or `eas-*` (paid EAS service). Paid skills open the body with a costs/plan-limits callout. See `CONTRIBUTING.md` for the full rules.
-- Keep the `SKILL.md` body under 500 lines and the `description` under 1024 characters - both are CI-enforced by `scripts/check-skill-limits.ts`.
-- Move detailed material to `references/` and load it only when the skill needs it.
-- Put reusable validation or fetching logic in `scripts/` instead of pasting large command blocks into the skill.
-- Write descriptions that match how users naturally ask for help.
-- Include keywords users are likely to mention, but do not stuff descriptions with unrelated terms.
-- Prefer concrete commands, APIs, and Expo package names over vague advice.
+For an experimental API, use `experimental-skills/<skill-name>/` and the Experimental catalog group instead. Keep it out of the stable overview map and upload ZIP until graduation.
 
-## Supporting Files
-
-Skills can include supporting files:
-
-```
-skills/my-skill/
-├── SKILL.md
-├── references/
-│   ├── setup.md
-│   └── examples.md
-└── scripts/
-    ├── fetch.js
-    └── validate.js
-```
-
-Reference support files from `SKILL.md` with relative paths:
-
-```markdown
-## References
-
-Consult these resources as needed:
-
-- `./references/setup.md`: Setup and configuration guide
-- `./references/examples.md`: Usage examples
-```
-
-## Marketplace Configuration
-
-Agent Plugins standardizes the plugin package, not its distribution. This repo has one shared plugin implementation at `plugins/expo` and two marketplace catalogs:
-
-- `.claude-plugin/marketplace.json`: Claude Code. Cursor uses this file too. It tries `.cursor-plugin/marketplace.json` first, and this repo does not ship that path.
-- `.agents/plugins/marketplace.json`: Codex marketplace.
-
-Claude Code and Cursor marketplace entries use string `source` paths:
-
-```json
-{
-  "name": "marketplace-name",
-  "owner": {
-    "name": "Expo Team",
-    "email": "support@expo.dev"
-  },
-  "metadata": {
-    "description": "Marketplace description"
-  },
-  "plugins": [
-    {
-      "name": "plugin-name",
-      "source": "./plugins/plugin-name",
-      "description": "What the plugin does."
-    }
-  ]
-}
-```
-
-Codex marketplace entries use an object `source` plus install policy and category:
-
-```json
-{
-  "name": "marketplace-name",
-  "interface": {
-    "displayName": "Marketplace Display Name"
-  },
-  "plugins": [
-    {
-      "name": "plugin-name",
-      "source": {
-        "source": "local",
-        "path": "./plugins/plugin-name"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Developer Tools"
-    }
-  ]
-}
-```
-
-Marketplace entry fields:
-
-- `name` is required and uses kebab-case.
-- `source` is required and should point at the plugin directory relative to the marketplace root.
-- `description` fields, when present, should be concise and user-facing.
-- Codex entries must include `policy.installation`, `policy.authentication`, and `category`.
-
-Marketplace entries are `expo` and `expo-experiments` only. Do not add compatibility aliases.
-
-## Adding a Skill
-
-Follow the full guide in `CONTRIBUTING.md`. In short:
-
-1. Pick the name per the naming rule: `expo-*` for open-source framework skills, `eas-*` for paid EAS service skills.
-2. Create `plugins/expo/skills/<skill-name>/SKILL.md` with a description that says what the skill does and when to use it. Paid skills open with a costs/plan-limits callout.
-3. Add focused reference files under `references/` when the skill needs more detail than belongs in the main `SKILL.md`, scripts under `scripts/` only for reusable logic, and `agents/openai.yaml` for Codex triggering.
-4. Add the canonical feedback block with `bun scripts/check-skill-limits.ts --fix-feedback`; CI verifies that its subject matches the skill name.
-5. Register the skill in every catalog: `skills.sh.json`, `plugins/expo/README.md`, `plugins/expo/skills/README.md`, and the root `README.md`.
-6. Add a one-line entry for the skill to the `expo-overview` Skill Map (`plugins/expo/skills/expo-overview/SKILL.md`) so the router can dispatch to it. This is enforced by the `check` workflow (`bun scripts/check-overview-routing.ts`).
-7. Bump the version in both plugin manifests together with `bun scripts/check-plugin-version-bump.ts --set-version <version>` (they must match and be greater than main; CI-enforced).
-8. Keep the skill under the existing `expo` plugin unless there is a clear distribution reason to create a new plugin.
-
-## Testing Plugins
-
-Validate the changed surface before publishing:
+## Validation and packaging
 
 ```bash
-claude plugin validate .
-claude plugin validate ./plugins/expo
+bun test scripts/
 bun scripts/check-skill-limits.ts
+bun scripts/check-overview-routing.ts
 bun scripts/check-plugin-version-bump.ts origin/main
+bun scripts/check-plugin.ts
+claude plugin validate .
+bun scripts/package-plugin.ts
 ```
 
-For JSON-only changes, also verify the edited JSON file parses:
+Run relevant helper checks when changing a bundled script. Native fixtures need their documented toolchain; paid EAS evaluations are separate from offline validation.
 
-```bash
-python3 -m json.tool .claude-plugin/marketplace.json >/dev/null
-python3 -m json.tool .agents/plugins/marketplace.json >/dev/null
-python3 -m json.tool plugins/expo/plugin.json >/dev/null
-python3 -m json.tool plugins/expo/.claude-plugin/plugin.json >/dev/null
-python3 -m json.tool plugins/expo/mcp.json >/dev/null
-python3 -m json.tool plugins/expo/.mcp.json >/dev/null
-```
+The package script uses an explicit allowlist, preserves source bytes, validates an extracted ZIP, and refuses to overwrite an existing archive. Keep experiments, caches, credentials, test fixtures, maintainer tooling, and generated archives out of it. Packaging must never submit to a directory.
 
-For Codex marketplace changes, verify registration in an isolated Codex home before using your real config:
+For evaluation infrastructure, use `bash scripts/ci.sh fetch_eval_harness` to obtain the pinned private harness in ignored `eval-harness/`. Do not commit a submodule or downloaded checkout. Baseline extraction and version checks must support both the former `plugins/expo` layout and the repository-root layout during migration.
 
-```bash
-mkdir -p .context/codex-home .context/fake-home
-CODEX_HOME="$PWD/.context/codex-home" HOME="$PWD/.context/fake-home" codex plugin marketplace add "$PWD"
-```
+See `docs/publishing.md` for external catalog updates. Official listings still pointing to `plugins/expo` need a source-path and revision update before adopting this release; keep the existing pinned versions available while that review happens.
 
-Cursor reads `.claude-plugin/marketplace.json`. Validate that file against Cursor's plugin template validator when available. This workspace has `bun`, so the Node-based validator can be run with Bun.
+## Commit and PR conventions
 
-If a skill includes scripts, run the relevant script-level validation from that skill's `scripts/` directory.
-
-## User Installation
-
-Users install the active plugin from this marketplace:
-
-```text
-/plugin marketplace add expo/skills
-/plugin install expo
-```
-
-Codex users can add this repository as a marketplace and then install `expo` from the Codex plugin directory:
-
-```text
-codex plugin marketplace add expo/skills --ref main
-```
-
-## Conventions in This Repo
-
-- Use kebab-case for plugin names, skill names, and file names.
-- Use `@expo.io` or `@expo.dev` author emails.
-- Use MIT licensing for all plugins and skills.
-- Include a brief `README.md` for each plugin.
-- Keep references close to the skill that uses them.
-- Avoid broad rewrites when updating a skill; preserve the skill's existing scope and trigger intent.
-
-## Feedback
-
-Every skill needs the canonical feedback footer. Run `bun scripts/check-skill-limits.ts --fix-feedback` to add or refresh it; CI verifies that its subject matches the skill name.
+- Commit messages are a single lowercase-leading line, with no conventional prefix or body.
+- Use PR titles such as `[plugins] move Expo to a repository-root plugin`.
+- Never add AI co-author trailers or credits.

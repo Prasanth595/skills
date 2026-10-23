@@ -82,8 +82,37 @@ def hash_directory(directory: Path) -> str:
     return sha256_hex("\n".join(lines).encode("utf-8"))
 
 
+def hash_plugin(directory: Path) -> str:
+    """Hash the installable plugin, excluding maintainer checkouts and outputs.
+
+    These are the portable and native plugin components, including all skill
+    references and scripts. Optional paths allow comparison with pre-migration
+    plugin archives that have no portable manifest yet.
+    """
+    paths = (
+        "plugin.json", "mcp.json", ".mcp.json",
+        ".claude-plugin/plugin.json",
+        "assets/expo.png", "skills", "README.md", "LICENSE",
+    )
+    lines = []
+    for name in paths:
+        path = directory / name
+        if path.is_symlink():
+            raise ValueError(f"Plugin component must not be a symlink: {path}")
+        if path.is_dir():
+            digest = hash_directory(path)
+        elif path.is_file():
+            digest = sha256_hex(path.read_bytes())
+        else:
+            continue
+        lines.append(f"{name}\0{digest}")
+    if not (directory / "skills").is_dir():
+        raise ValueError(f"Plugin skills directory is missing: {directory}")
+    return sha256_hex("\n".join(lines).encode("utf-8"))
+
+
 def harness_revision(harness_dir: Path) -> str:
-    # The harness is vendored as a pinned git submodule -- the pinned commit
+    # The harness is fetched as a pinned maintainer checkout -- the commit
     # SHA already uniquely identifies its full tree content, so there is no
     # need to separately hash the harness's files.
     result = subprocess.run(
@@ -119,7 +148,7 @@ def eval_config_hash(prd_path: Path, prd_skills_path: Path, prd_id: str, scenari
 def cmd_fingerprint(args: argparse.Namespace) -> None:
     description = {
         "schema_version": FINGERPRINT_SCHEMA_VERSION,
-        "skill_content_sha256": hash_directory(args.skill_dir),
+        "skill_content_sha256": hash_plugin(args.skill_dir),
         "harness_sha256": harness_revision(args.harness_dir),
         "eval_config_sha256": eval_config_hash(args.prd, args.prd_skills, args.prd_id, args.scenario),
         "agent": args.agent,

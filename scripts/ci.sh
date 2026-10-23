@@ -14,13 +14,35 @@
 # documents this, we hit it in CI. Shared here so both workflows stay in sync.
 export AGENT_MODEL="${AGENT_MODEL:-sonnet[1m]}"
 
-# Configures the (private, token-scoped) eval-harness submodule fetch and
-# initializes it. Called by every function below that needs eval-harness.
+# Fetch the private evaluation checkout only when a maintainer runs an eval.
+# The revision is reviewed in scripts/eval-harness.json, not a plugin submodule.
 fetch_eval_harness() {
+  bash scripts/setup-eval-harness.sh
+}
+
+# Normalize either historical nested packages or root packages into one baseline
+# directory. This keeps PR comparisons working while origin/main still uses the
+# old layout. Extract tracked files only, never the private evaluation checkout.
+# Usage: extract_plugin <git-ref> <new-destination>
+extract_plugin() {
   (
     set -euo pipefail
-    git config --global url."https://x-access-token:${EVAL_HARNESS_ACCESS_TOKEN}@github.com/".insteadOf "https://github.com/"
-    git submodule update --init eval-harness
+    local ref="$1" destination="$2"
+    mkdir "$destination"
+    if git cat-file -e "${ref}:skills" 2>/dev/null; then
+      local paths=() path
+      for path in plugin.json mcp.json .mcp.json .claude-plugin/plugin.json assets/expo.png skills README.md LICENSE; do
+        if git cat-file -e "${ref}:${path}" 2>/dev/null; then
+          paths+=("$path")
+        fi
+      done
+      git archive "$ref" "${paths[@]}" | tar -x -C "$destination"
+    elif git cat-file -e "${ref}:plugins/expo/skills" 2>/dev/null; then
+      git archive "$ref" plugins/expo | tar -x --strip-components=2 -C "$destination"
+    else
+      echo "No Expo plugin found on $ref" >&2
+      exit 1
+    fi
   )
 }
 
@@ -33,14 +55,11 @@ install_harness_deps() {
   )
 }
 
-# Extracts main's skill content (or uses the current checkout directly),
-# fetches eval-harness, and prints the fingerprint JSON for it.
-#
+# Extract main's plugin, or use the current root plugin, and fingerprint only
+# packaged content. The archived layout is normalized by extract_plugin.
 # Usage: fingerprint_main_content extract|checkout
-#   extract:  git-archive origin/main's plugins/expo into /tmp/plugins-main
-#             (for PR-side jobs, checked out on the PR's own commit).
-#   checkout: use $(pwd)/plugins/expo directly (skill-eval-main-baseline.yml,
-#             already checked out on main).
+#   extract: clean archive of origin/main at /tmp/expo-plugin-main
+#   checkout: current repository root, already checked out on main
 #
 # Requires PRD, PRD_ID, SCENARIO, AGENT, EVAL_HARNESS_ACCESS_TOKEN in env
 # (already set as job env vars / repo secrets); AGENT_MODEL is defaulted above.
@@ -51,23 +70,22 @@ fingerprint_main_content() {
     local skill_dir
 
     if [ "$mode" = "extract" ]; then
-      # Must run before fetch_eval_harness's url.insteadOf rewrite: this
-      # fetch is against THIS repo (origin) and needs eas/checkout's own
-      # working credentials, not the EVAL_HARNESS_ACCESS_TOKEN rewrite
-      # installed for the unrelated, private eval-harness submodule fetch.
-      #
-      # Redirected to stderr: this function's stdout is redirected straight
-      # into a JSON file by the caller (`fingerprint_main_content ... >
-      # fp-*.json`), so anything these setup commands print on stdout (git's
-      # own progress/status messages, e.g. "Submodule path '...' checked
-      # out '<sha>'") would otherwise corrupt that file -- only ci.py
-      # fingerprint's own final JSON print may reach real stdout.
+      # Only fingerprint JSON goes to stdout; setup logs go to stderr.
       git fetch origin main >&2
-      mkdir -p /tmp/plugins-main
-      git archive origin/main plugins/expo | tar -x -C /tmp/plugins-main
-      skill_dir="/tmp/plugins-main/plugins/expo"
+      local baseline_parent
+      baseline_parent="$(mktemp -d /tmp/expo-plugin-baseline.XXXXXX)"
+      extract_plugin origin/main "$baseline_parent/plugin" >&2
+      # The later evaluation job in this workspace uses the same normalized path.
+      # Refuse to replace an existing baseline instead of mixing archived trees.
+      if [ -e /tmp/expo-plugin-main ]; then
+        echo "/tmp/expo-plugin-main already exists; use a fresh evaluation workspace" >&2
+        exit 1
+      fi
+      mv "$baseline_parent/plugin" /tmp/expo-plugin-main
+      rmdir "$baseline_parent"
+      skill_dir="/tmp/expo-plugin-main"
     elif [ "$mode" = "checkout" ]; then
-      skill_dir="$(pwd)/plugins/expo"
+      skill_dir="$(pwd)"
     else
       echo "usage: fingerprint_main_content extract|checkout" >&2
       exit 2
@@ -159,8 +177,8 @@ author_and_evaluate() {
   if [ "$cache_hit" = "true" ]; then
     cp -r "$cached_dir" "$out_dir"
   else
-    fetch_eval_harness
-    install_harness_deps
+    fetch_eval_harness || return
+    install_harness_deps || return
 
     export SKILL_PLUGIN_DIR="$plugin_dir"
     bash ./eval-harness/eval_harness/app_builder/scripts/author-app.sh

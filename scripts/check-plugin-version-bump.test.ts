@@ -1,234 +1,156 @@
-// Exercises scripts/check-plugin-version-bump.ts so a reviewer can verify the
-// --help and --set-version options without hand-running each case.
-//
-// Usage: bun test scripts/check-plugin-version-bump.test.ts
-//
-// The --set-version cases write to the plugin manifests. They are backed
-// up before the suite and restored before every test and after the run, so each
-// test starts from a pristine copy and any uncommitted edits you already had in
-// those files survive the run.
-//
-// Every case compares against HEAD rather than origin/main, so the suite works
-// in a clone that has never fetched the remote.
-
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+// Exercise both historical and root layouts in disposable repositories.
+// The tests never modify this checkout's manifests or Git state.
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 
-const checkScript = "scripts/check-plugin-version-bump.ts";
-
+const checkScript = join(import.meta.dir, "check-plugin-version-bump.ts");
 const manifests = [
-  "plugins/expo/.claude-plugin/plugin.json",
-  "plugins/expo/plugin.json",
+  "plugin.json",
+  ".claude-plugin/plugin.json",
 ];
+const baseVersion = "1.14.0";
+const nextVersion = "2.0.0";
+const laterVersion = "2.0.1";
+let repository: string;
 
-process.chdir(join(import.meta.dir, ".."));
+function git(...args: string[]) {
+  return execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+}
+
+function write(path: string, contents: string) {
+  mkdirSync(dirname(join(repository, path)), { recursive: true });
+  writeFileSync(join(repository, path), contents);
+}
+
+type Layout = "root" | "nested" | "legacy";
+
+function writeManifests(version: string, layout: Layout = "root") {
+  for (const path of manifests) {
+    const filename = layout === "legacy" && path === "plugin.json" ? ".codex-plugin/plugin.json" : path;
+    write(`${layout === "root" ? "" : "plugins/expo/"}${filename}`, JSON.stringify({ name: "expo", version }, null, 2) + "\n");
+  }
+}
+
+function createRepository(layout: Layout = "root") {
+  if (repository) rmSync(repository, { recursive: true, force: true });
+  repository = mkdtempSync(join(tmpdir(), "expo-plugin-version-"));
+  git("init", "-q");
+  git("config", "user.name", "Fixture");
+  git("config", "user.email", "fixture@example.test");
+  writeManifests(baseVersion, layout);
+  git("add", ".");
+  git("commit", "-qm", "initial package");
+  writeManifests(nextVersion);
+}
 
 function runCheck(...args: string[]) {
   const result = Bun.spawnSync(["bun", checkScript, ...args], {
+    cwd: repository,
     stdout: "pipe",
     stderr: "pipe",
   });
-
-  return {
-    exitCode: result.exitCode,
-    output: `${result.stdout.toString()}${result.stderr.toString()}`,
-  };
+  return { exitCode: result.exitCode, output: `${result.stdout}${result.stderr}` };
 }
 
-function versionOf(manifest: string) {
-  return JSON.parse(readFileSync(manifest, "utf8")).version as string;
+function versionOf(path: string) {
+  return JSON.parse(readFileSync(join(repository, path), "utf8")).version;
 }
 
-// The base-ref version, not the working-tree one: it is what the script compares
-// against, so the cases stay correct even when a manifest has local edits.
-function baseVersionOf(manifest: string) {
-  const contents = execFileSync("git", ["show", `HEAD:${manifest}`], { encoding: "utf8" });
-  return JSON.parse(contents).version as string;
-}
+beforeEach(() => createRepository());
+afterEach(() => rmSync(repository, { recursive: true, force: true }));
 
-function bumpPatch(version: string, by: number) {
-  const [major, minor, patch] = version.split(".");
-  return `${major}.${minor}.${Number(patch) + by}`;
-}
-
-const baseVersion = baseVersionOf(manifests[0] as string);
-const nextVersion = bumpPatch(baseVersion, 1);
-const laterVersion = bumpPatch(baseVersion, 2);
-
-let backupDir: string;
-
-function backupOf(manifest: string) {
-  return join(backupDir, `${basename(dirname(manifest))}.json`);
-}
-
-function changedLineCount(manifest: string) {
-  const before = readFileSync(backupOf(manifest), "utf8").split("\n");
-  const after = readFileSync(manifest, "utf8").split("\n");
-
-  if (before.length !== after.length) {
-    return Number.POSITIVE_INFINITY;
-  }
-
-  return before.filter((line, index) => line !== after[index]).length;
-}
-
-function restoreManifests() {
-  for (const manifest of manifests) {
-    copyFileSync(backupOf(manifest), manifest);
-  }
-}
-
-beforeAll(() => {
-  backupDir = mkdtempSync(join(tmpdir(), "plugin-version-bump-"));
-  for (const manifest of manifests) {
-    copyFileSync(manifest, backupOf(manifest));
-  }
-});
-
-beforeEach(() => {
-  restoreManifests();
-});
-
-afterAll(() => {
-  restoreManifests();
-  rmSync(backupDir, { recursive: true, force: true });
-});
-
-describe("--help", () => {
-  test("prints usage", () => {
-    const { exitCode, output } = runCheck("--help");
-
-    expect(exitCode).toBe(0);
-    expect(output).toContain("Usage: bun scripts/check-plugin-version-bump.ts");
-  });
-
-  test("-h is an alias", () => {
-    const { exitCode, output } = runCheck("-h");
-
-    expect(exitCode).toBe(0);
-    expect(output).toContain("--set-version <ver>");
-  });
-
-  test("lists the manifests it writes", () => {
-    const { output } = runCheck("--help");
-
-    for (const manifest of manifests) {
-      expect(output).toContain(manifest);
+describe("arguments", () => {
+  test("prints help and every manifest path", () => {
+    for (const flag of ["--help", "-h"]) {
+      const result = runCheck(flag);
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain("Usage: bun scripts/check-plugin-version-bump.ts");
+      for (const path of manifests) expect(result.output).toContain(path);
     }
   });
-});
-
-describe("argument errors", () => {
-  test("rejects an unknown option", () => {
-    const { exitCode, output } = runCheck("--bogus");
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain("Unknown option: --bogus");
-  });
-
-  test("rejects a second positional argument", () => {
-    const { exitCode, output } = runCheck("HEAD", "extra");
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain("Unexpected argument: extra");
-  });
-
-  test("rejects --set-version with no value", () => {
-    const { exitCode, output } = runCheck("--set-version");
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain("requires a version argument");
-  });
-
-  test("rejects --set-version= with no value", () => {
-    const { exitCode, output } = runCheck("--set-version=");
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain("requires a version argument");
-  });
-});
-
-describe("semver validation", () => {
-  const invalidVersions = ["1.9", `v${nextVersion}`, "1.2.3.4", "01.2.3", `${nextVersion}.`];
-
-  for (const version of invalidVersions) {
-    test(`rejects "${version}"`, () => {
-      const { exitCode, output } = runCheck("HEAD", "--set-version", version);
-
-      expect(exitCode).toBe(1);
-      expect(output).toContain("not a valid semver version");
+  for (const [args, message] of [
+    [["--bogus"], "Unknown option: --bogus"],
+    [["HEAD", "extra"], "Unexpected argument: extra"],
+    [["--set-version"], "requires a version argument"],
+    [["--set-version="], "requires a version argument"],
+  ] as const) {
+    test(`rejects ${args.join(" ")}`, () => {
+      const result = runCheck(...args);
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain(message);
+    });
+  }
+  for (const version of ["1.9", "v2.0.0", "1.2.3.4", "01.2.3", "2.0.0."]) {
+    test(`rejects invalid semver ${version}`, () => {
+      const result = runCheck("HEAD", "--set-version", version);
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain("not a valid semver version");
     });
   }
 });
 
-describe("base-ref comparison", () => {
-  test("rejects the version already on the base ref", () => {
-    const { exitCode, output } = runCheck("HEAD", "--set-version", baseVersion);
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain("is not greater than");
-  });
-
-  test("rejects a version below the base ref", () => {
-    const { exitCode, output } = runCheck("HEAD", "--set-version", "0.0.1");
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain("is not greater than");
-  });
-
-  test("leaves every manifest untouched when it rejects", () => {
-    runCheck("HEAD", "--set-version", "0.0.1");
-
-    for (const manifest of manifests) {
-      expect(readFileSync(manifest, "utf8")).toBe(readFileSync(backupOf(manifest), "utf8"));
+for (const layout of ["root", "nested", "legacy"] as const) {
+  describe(`${layout} base migration`, () => {
+    beforeEach(() => createRepository(layout));
+    for (const version of [baseVersion, "0.0.1"]) {
+      test(`rejects ${version} without changing manifests`, () => {
+        const before = manifests.map((path) => readFileSync(join(repository, path), "utf8"));
+        const result = runCheck("HEAD", "--set-version", version);
+        expect(result.exitCode).toBe(1);
+        expect(result.output).toContain("is not greater than");
+        expect(manifests.map((path) => readFileSync(join(repository, path), "utf8"))).toEqual(before);
+      });
     }
+    test("writes both versions and preserves other lines", () => {
+      const before = manifests.map((path) => readFileSync(join(repository, path), "utf8").split("\n"));
+      const result = runCheck("HEAD", "--set-version", laterVersion);
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain("All 2 plugin manifests are now at 2.0.1");
+      for (const [index, path] of manifests.entries()) {
+        expect(versionOf(path)).toBe(laterVersion);
+        const after = readFileSync(join(repository, path), "utf8").split("\n");
+        expect(after.length).toBe(before[index]!.length);
+        expect(after.filter((line, lineIndex) => line !== before[index]![lineIndex]).length).toBe(1);
+      }
+    });
+    test("checks committed changes against the original base", () => {
+      const base = git("rev-parse", "HEAD");
+      write("skills/expo-example/SKILL.md", "new skill\n");
+      git("add", ".");
+      git("commit", "-qm", "move and update package");
+      expect(runCheck(base).exitCode).toBe(0);
+      writeManifests(baseVersion);
+      const result = runCheck(base);
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain(`version must be greater than main (${baseVersion})`);
+    });
   });
+}
+
+test("prefers the nested portable manifest over a historical Codex manifest", () => {
+  createRepository("nested");
+  write("plugins/expo/.codex-plugin/plugin.json", JSON.stringify({ name: "expo", version: "9.0.0" }));
+  git("add", "plugins/expo/.codex-plugin/plugin.json");
+  git("commit", "-qm", "retain historical metadata");
+  const result = runCheck("HEAD", "--set-version", laterVersion);
+  expect(result.exitCode).toBe(0);
 });
 
-describe("--set-version", () => {
-  test("writes the version to all plugin manifests", () => {
-    const { exitCode, output } = runCheck("HEAD", "--set-version", nextVersion);
-
-    expect(exitCode).toBe(0);
-    expect(output).toContain(`All ${manifests.length} plugin manifests are now at ${nextVersion}`);
-
-    for (const manifest of manifests) {
-      expect(versionOf(manifest)).toBe(nextVersion);
-    }
-  });
-
-  test("changes exactly one line per manifest", () => {
-    runCheck("HEAD", "--set-version", nextVersion);
-
-    for (const manifest of manifests) {
-      expect(changedLineCount(manifest)).toBe(1);
-    }
-  });
-
-  test("reports no change when the version already matches", () => {
-    runCheck("HEAD", "--set-version", nextVersion);
-    const { exitCode, output } = runCheck("HEAD", "--set-version", nextVersion);
-
-    expect(exitCode).toBe(0);
-    expect(output).toContain(`Unchanged Claude: already ${nextVersion}`);
-  });
-
-  test("accepts the --set-version=<version> form", () => {
-    const { exitCode, output } = runCheck("HEAD", `--set-version=${laterVersion}`);
-
-    expect(exitCode).toBe(0);
-    expect(output).toContain(`All ${manifests.length} plugin manifests are now at ${laterVersion}`);
-  });
+test("accepts equals syntax and reports unchanged versions", () => {
+  const result = runCheck("HEAD", `--set-version=${nextVersion}`);
+  expect(result.exitCode).toBe(0);
+  expect(result.output).toContain(`Unchanged Claude: already ${nextVersion}`);
 });
 
-describe("the check itself", () => {
-  test("still produces its Markdown report", () => {
-    const { exitCode, output } = runCheck("HEAD");
-
-    expect([0, 1]).toContain(exitCode);
-    expect(output).toContain("## Expo plugin version check");
-  });
+test("rejects out-of-sync portable and compatibility versions", () => {
+  const base = git("rev-parse", "HEAD");
+  git("add", ".");
+  git("commit", "-qm", "bump package");
+  write("plugin.json", JSON.stringify({ name: "expo", version: laterVersion }));
+  const result = runCheck(base);
+  expect(result.exitCode).toBe(1);
+  expect(result.output).toContain("plugin versions in this PR must match");
 });

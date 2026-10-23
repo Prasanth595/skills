@@ -1,96 +1,68 @@
-<p align="center">
-  <a href="https://docs.expo.dev/skills/" target="_blank">
-    <img src="assets/expo-skills.png" alt="Expo Skills" width="100%" />
-  </a>
-</p>
+[![Expo](assets/expo.png)](https://docs.expo.dev/skills/)
 
-<h3 align="center">Expo Skills</h3>
+# Expo Plugin
 
-<p align="center">
-  <a href="https://skills.sh/expo/skills"><img src="https://skills.sh/b/expo/skills" alt="skills.sh installs" /></a>
-  <img src="https://img.shields.io/badge/Expo-official-000020" alt="Official Expo" />
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" />
-</p>
+Official Expo skills and the Expo MCP connection for building, deploying, upgrading, and debugging Expo and React Native apps.
 
-<p align="center">
-  Official AI agent skills from the Expo team for building, deploying, upgrading, and debugging Expo apps.
-</p>
-
-## How It Works
-
-Skills give AI agents focused Expo knowledge: when to use Expo APIs, how to structure common workflows, and which Expo, EAS, React Native, iOS, and Android constraints matter. Expo documentation, Expo CLI, and EAS CLI remain the source of truth; these skills help agents apply them correctly.
+This repository is the plugin. `skills/` contains the instructions and supporting files; `mcp.json` connects compatible clients to Expo's hosted MCP server. The root `plugin.json` uses the portable [Agent Plugins format](https://agent-plugins.org/specification) for Codex and other compatible clients. Claude and Cursor use `.claude-plugin/plugin.json`; Grok uses the root manifest. `.mcp.json` supplies the connection for Claude, Cursor, and Grok.
 
 ## Installation
 
-For Claude Code or Codex, install the plugin so updates are handled by the official plugin marketplace. For Cursor, OpenCode, and other AI coding agents, use the skills CLI.
+Use the Expo listing in your client's official directory. Directory releases are reviewed separately from this repository; a change here does not automatically update an installed plugin.
 
-| Path | Best for |
+| Client | Installation and release status |
 | --- | --- |
-| Plugin install | Claude Code or Codex, with updates handled by their official plugin marketplaces. |
-| Skills CLI | Cursor, OpenCode, GitHub Copilot, Windsurf, Gemini, Cline, AMP, Factory Droid, Antigravity, Kiro CLI, and other AI coding agents. |
+| Claude Code | `claude plugin install expo@claude-plugins-official` installs the currently approved release. |
+| Codex | Open `/plugins` and install Expo from the OpenAI-curated directory. The currently approved release may differ from this source. |
+| ChatGPT | This repository prepares the skills-plus-MCP package. ChatGPT publication and account testing are still pending. |
+| Claude chat | The [Expo MCP connector](https://claude.com/marketplace/connectors/expo) is available separately. Publication of this skills-plus-MCP bundle for chat is still pending. |
+| Grok Bot and Cursor | This repository prepares the package for directory submission. Publication and client testing are still pending. |
 
-### Skills CLI
+After installing a plugin with MCP, use the client's connection flow to sign in to Expo. A connector installed by URL supplies MCP tools; it does not install this repository's skills. Local project editing and device testing also require access to the project and the appropriate execution tools.
 
-Install all Expo skills with the [skills CLI](https://skills.sh/docs/cli):
+This repository no longer hosts marketplace catalogs. Older instructions using `/plugin marketplace add expo/skills`, `codex plugin marketplace add expo/skills`, or the deprecated plugin aliases do not apply to this layout. See the [publication and migration guide](https://github.com/expo/skills/blob/main/docs/publishing.md) for official listing updates.
 
-```text
-npx skills@latest add expo/skills --skill '*'
-```
+### Skills only
 
-This selects every Expo skill without selecting every agent. The CLI will still ask where to install them; to target one agent directly, add `--agent <agent>`.
-
-For most agents, this is the only install command you need. Run it from the project root, then restart or refresh your agent session so it can discover the installed `SKILL.md` files.
-
-### Claude Code Plugin
-
-Install from the official Claude Code plugin marketplace:
+Install selected skills with the [skills CLI](https://skills.sh/docs/cli), for example:
 
 ```text
-claude plugin install expo@claude-plugins-official
+npx skills@latest add expo/skills --skill expo-overview --skill expo-router
 ```
 
-You can also run `/plugin install expo@claude-plugins-official` inside Claude Code.
+The CLI asks which agents to install into. Add `--agent <agent>` to choose one. To select all stable skills, use `npx skills@latest add https://github.com/expo/skills/tree/main/skills --skill '*'`. Pointing at `skills/` keeps maintainer and experimental skills out of discovery. Skills-only installation does not configure MCP. Follow the [Expo MCP setup guide](https://docs.expo.dev/eas/ai/mcp/) to connect it separately.
 
-### Codex Plugin
+Update skills installed this way with `npx skills@latest update`. Plugins update through the directory where they were installed.
 
-Install from the OpenAI-curated Codex marketplace:
+### Test the source locally
 
-```text
-codex plugin add expo@openai-curated
+With Claude Code installed, load the repository as a plugin:
+
+```bash
+claude --plugin-dir /absolute/path/to/skills
 ```
 
-You can also open `/plugins` in Codex and install `expo` from the OpenAI-curated marketplace.
+For a reviewable ZIP containing the skills, assets, manifests, and MCP configuration:
 
-## Updating
-
-Claude Code and Codex plugin installs are updated through their official plugin marketplaces.
-
-For skills CLI installs, update installed skills with:
-
-```text
-npx skills@latest update
+```bash
+bun scripts/check-plugin.ts
+bun scripts/package-plugin.ts
 ```
 
-To update a single Expo skill, pass its name:
+The archive is written to `dist/`. These commands do not publish or upload it. See the [client testing guide](https://github.com/expo/skills/blob/main/docs/testing.md) before submission.
 
-```text
-npx skills@latest update expo-router
-```
+## Try it
 
-## Try It
-
-After installing, ask your agent Expo-specific questions like:
-
-- "Build a native-feeling Expo Router screen with tabs, modals, and animations."
-- "Create an EAS workflow that builds previews on pull requests."
+- "Build a native-feeling Expo Router screen with tabs and animations."
+- "Investigate why my latest EAS build failed."
 - "Help me upgrade this app to the latest Expo SDK."
 - "Check whether this EAS Update rollout is healthy."
 
-Agents choose the right skill from the task context and each skill's description.
+Agents choose skills from the task and each skill's description. A skill can provide guidance in chat even when the tools needed to execute its commands are unavailable.
 
 ## Skills Included
 
-Skills come in two groups so the free vs paid boundary is clear. Each skill's description carries the same label, and every services skill opens with a costs/plan-limits note.
+Skills come in two groups so the free vs paid boundary is clear. Every services skill opens with a costs/plan-limits note.
 
 ### Start Here
 
@@ -138,36 +110,30 @@ Skills whose core purpose uses paid Expo Application Services (EAS).
 
 ### Experimental
 
-Skills for Expo APIs that are not finalized. Content may change or be retired; skills graduate to the groups above when the underlying API stabilizes. These ship in the separate `expo-experiments` plugin (install it alongside `expo`), or individually via the skills CLI.
+Skills for Expo APIs that are not finalized. Content may change or be retired; skills graduate to the groups above when the underlying API stabilizes. They live in `experimental-skills/` and are excluded from the published Expo plugin. Install one explicitly with the skills CLI: `npx skills@latest add https://github.com/expo/skills/tree/main/experimental-skills/expo-migrate-module`.
 
 | Skill | Use it for |
 | --- | --- |
 | `expo-migrate-module` | Migrating a Swift Expo module from the Modules API 1.0 definition DSL to the 2.0 macro API. |
 
-## Expo MCP Server
+## Expo MCP server
 
-Skills teach an agent how Expo work gets done. The [Expo MCP server](https://docs.expo.dev/eas/ai/mcp/) gives it live access to actually do that work: read the latest Expo docs on demand, install compatible dependencies with `npx expo install`, trigger and monitor EAS builds and workflows, pull crash data from TestFlight, and screenshot a running app in the simulator.
+The package registers `https://mcp.expo.dev/mcp` using Streamable HTTP and Expo OAuth. This repository contains connection configuration, not the hosted server's implementation or deployment. Remote account operations and optional local development tools have different prerequisites; see [Expo MCP setup and capabilities](https://docs.expo.dev/eas/ai/mcp/).
 
-The `expo` plugin bundles this MCP configuration, so Claude Code and Codex plugin installs wire it up automatically. For other agents, or to add it on its own, follow the [Expo MCP setup guide](https://docs.expo.dev/eas/ai/mcp/).
+`mcp.json` is the portable configuration. `.mcp.json` registers the same endpoint for native client loaders. The plugin uses a direct MCP connection and does not depend on an OpenAI app ID or an `.app.json` file.
 
-## FAQ
+## Execution and data
 
-### Which AI coding agents are supported?
+Installing this package does not run a setup hook or install dependencies. When a skill is used, the agent may fetch Expo documentation and GitHub examples, invoke package managers and Expo/EAS CLIs, edit project files, or call connected Expo MCP tools. Builds, submissions, deployments, and cloud simulator sessions use the selected Expo account and may consume plan resources. Skills do not grant additional access beyond the client's tools and permissions.
 
-Use `npx skills@latest add expo/skills --skill '*'` for Cursor, OpenCode, GitHub Copilot, Windsurf, Gemini, Cline, AMP, Factory Droid, Antigravity, Kiro CLI, and similar AI coding tools.
+The EAS Workflows helper fetches workflow schemas from `api.expo.dev` and documentation from `raw.githubusercontent.com`. It caches responses in the system temporary directory, or `EXPO_SKILLS_CACHE_DIR` when configured. Other skill commands can download packages from npm and access the Expo, Apple, Google, and other services needed for the requested integration.
 
-### Should I install the skills or the plugin?
+Feedback instructions use `npx --yes @expo/agent-cli@latest feedback`. The supplied category, subject, and report text are sent to Expo; include relevant context without secrets or unrelated private data. This package contains no background telemetry or automatic feedback hook. Data returned by MCP is also processed by the connected AI client under that provider's policies. See [Expo's privacy policy](https://expo.dev/privacy) and [MCP data privacy](https://docs.expo.dev/eas/ai/mcp/#data-privacy).
 
-Use the plugin for Claude Code or Codex; it stays updated through the plugin marketplace. Use `npx skills@latest add expo/skills --skill '*'` for Cursor, OpenCode, and other AI coding agents.
+## Contributing and publishing
 
-### What is the source of truth?
-
-Expo documentation, Expo CLI, and EAS CLI are the source of truth. These skills teach agents how to apply Expo guidance in real projects.
-
-## Feedback
-
-Every skill includes instructions to submit specific, actionable feedback with `npx --yes @expo/agent-cli@latest feedback`.
+Read [CONTRIBUTING.md](https://github.com/expo/skills/blob/main/CONTRIBUTING.md) to add or update a skill. The [publication guide](https://github.com/expo/skills/blob/main/docs/publishing.md) describes packaging, pending review requirements, and the official directory handoff. Experimental skills, evaluation infrastructure, test fixtures, and maintainer documentation are excluded from the upload ZIP.
 
 ## License
 
-MIT
+[MIT](LICENSE)

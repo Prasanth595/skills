@@ -1,6 +1,8 @@
 # Expo brownfield playgrounds
 
-Runnable iOS fixtures for the [expo-brownfield skill](../../../plugins/expo/skills/expo-brownfield/SKILL.md). They exercise the same Expo feature in a native SwiftUI host through either an integrated native build or an isolated XCFramework package. These fixtures belong to this repository; they are not bundled into the installed Expo plugin.
+Runnable iOS fixtures for the [expo-brownfield skill](../../../skills/expo-brownfield/SKILL.md). They exercise the same Expo feature in a native SwiftUI host through either an integrated native build or an isolated XCFramework package. These fixtures support repository testing and are excluded from the submission ZIP.
+
+The SDK 55 lockfile uses compact JSON to stay below the plugin directory's 256 KiB file review threshold. Preserve its dependency data when reformatting or updating it.
 
 The feature accepts initial props, requests a native context update, returns a selection, cancels, and displays a bundled image. The host keeps its own navigation and shows presentation/completion counters so repeated opening and dismissal are observable.
 

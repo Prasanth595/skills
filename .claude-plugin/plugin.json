@@ -1,0 +1,13 @@
+{
+  "name": "expo",
+  "version": "2.0.0",
+  "description": "Official Expo skills and MCP tools for building, deploying, upgrading, and debugging Expo and React Native apps.",
+  "author": {
+    "name": "Expo Team",
+    "email": "support@expo.dev",
+    "url": "https://expo.dev"
+  },
+  "homepage": "https://docs.expo.dev/skills/",
+  "repository": "https://github.com/expo/skills",
+  "license": "MIT"
+}
