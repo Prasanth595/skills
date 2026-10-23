@@ -30,10 +30,26 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
-      - name: Ensure that plugin version bump script is healthy
+      - name: Test plugin scripts
         id: version-check-test
         continue-on-error: true
-        run: bun test scripts/check-plugin-version-bump.test.ts
+        run: bun test scripts/*.test.ts
+
+      - name: Test evaluation setup and fingerprints
+        id: eval-infrastructure-test
+        continue-on-error: true
+        run: python3 -m unittest discover -s scripts -p '*_test.py'
+
+      - name: Validate the plugin and extracted submission package
+        id: package-check
+        continue-on-error: true
+        run: |
+          bun scripts/check-plugin.ts
+          package_check_dir="$(mktemp -d)"
+          trap 'rm -rf "$package_check_dir"' EXIT
+          bun scripts/package-plugin.ts --output "$package_check_dir/expo-plugin.zip"
+          unzip -q "$package_check_dir/expo-plugin.zip" -d "$package_check_dir/extracted"
+          bun scripts/check-plugin.ts "$package_check_dir/extracted"
 
       - name: Check skill requirements
         id: skill-limits
@@ -60,6 +76,8 @@ jobs:
       - name: Report check results
         if: always()
         env:
+          EVAL_INFRASTRUCTURE_TEST_OUTCOME: ${{ steps.eval-infrastructure-test.outcome }}
+          PACKAGE_CHECK_OUTCOME: ${{ steps.package-check.outcome }}
           SKILL_LIMITS_OUTCOME: ${{ steps.skill-limits.outcome }}
           VERSION_CHECK_TEST_OUTCOME: ${{ steps.version-check-test.outcome }}
           VERSION_CHECK_OUTCOME: ${{ steps.version-check.outcome }}
@@ -92,7 +110,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           report "skill requirements" "$SKILL_LIMITS_OUTCOME" "bun scripts/check-skill-limits.ts"
-          report "plugin version bump script" "$VERSION_CHECK_TEST_OUTCOME" "bun test scripts/check-plugin-version-bump.test.ts"
+          report "plugin scripts" "$VERSION_CHECK_TEST_OUTCOME" "bun test scripts/*.test.ts"
+          report "evaluation infrastructure" "$EVAL_INFRASTRUCTURE_TEST_OUTCOME" "python3 -m unittest discover -s scripts -p '*_test.py'"
+          report "submission package" "$PACKAGE_CHECK_OUTCOME" "bun scripts/check-plugin.ts && bun scripts/package-plugin.ts"
           report "plugin version bump" "$VERSION_CHECK_OUTCOME" "bun scripts/check-plugin-version-bump.ts origin/main"
           report "expo-overview routing" "$ROUTING_CHECK_OUTCOME" "bun scripts/check-overview-routing.ts"
 

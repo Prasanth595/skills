@@ -5,7 +5,7 @@
 ## Adding a new skill
 
 Skills teach an agent how to do one Expo task well. Follow these guidelines so new
-skills stay consistent with the rest of the marketplace.
+skills stay consistent with the rest of the plugin.
 
 ### 1. Scaffold it with `skill-creator`
 
@@ -16,7 +16,7 @@ reliable triggering.
 Skills live one level deep:
 
 ```
-plugins/expo/skills/<skill-name>/
+skills/<skill-name>/
   SKILL.md            # required
   references/         # optional, loaded on demand
   scripts/            # optional, reusable logic
@@ -94,12 +94,11 @@ that references the skill via `$<skill-name>`.
 Add it to the correct group (framework vs paid) in all of:
 
 - `skills.sh.json`
-- `plugins/expo/README.md` - **What This Plugin Does**, **When to Use**, and **Skills Included**
-- `plugins/expo/skills/README.md`
+- `skills/README.md`
 - `README.md`
 
 Also add a one-line entry to the `expo-overview` Skill Map
-(`plugins/expo/skills/expo-overview/SKILL.md`) so the router can dispatch to the new skill.
+(`skills/expo-overview/SKILL.md`) so the router can dispatch to the new skill.
 The `check` workflow (`bun scripts/check-overview-routing.ts`) enforces this.
 
 ### 9. Add the feedback instructions
@@ -115,29 +114,35 @@ CI fails if the block is missing, has drifted, or names the wrong skill.
 
 ### 10. Bump the plugin version
 
-Bump `version` in **both** manifests together. They must match each other and be greater
+Bump `version` in **both** manifests together - they must match each other and be greater
 than `main`. CI enforces this.
 
-- `plugins/expo/plugin.json` - the [Agent Plugins](https://agent-plugins.org/) manifest. Codex and other compatible clients read it. Grok reads it when the file exists. Codex install metadata lives under `extensions["com.openai"]`.
-- `plugins/expo/.claude-plugin/plugin.json` - Claude Code and Cursor.
+- `plugin.json` - the portable Agent Plugins manifest for Codex, other compatible clients, and Grok.
+- `.claude-plugin/plugin.json` - the Claude and Cursor manifest.
 
 The check script writes both for you, rejecting a version that is not valid semver or is not
 greater than the base ref:
 
 ```bash
-bun scripts/check-plugin-version-bump.ts --set-version 1.14.0
+bun scripts/check-plugin-version-bump.ts --set-version <next-version>
 ```
 
 Run it with `--help` for the full usage, or `bun test scripts/check-plugin-version-bump.test.ts` to exercise
-every case (the manifests are restored afterward).
+the version rules in disposable repositories.
+
+The root `plugin.json` is the portable manifest. Keep shared metadata synchronized with the Claude manifest; `check-plugin.ts` detects drift. OpenAI listing metadata lives only under `extensions.com.openai.interface`. Codex and other Agent Plugins clients load `mcp.json`, which uses `streamable-http`; Claude, Cursor, and Grok load `.mcp.json`, which uses `http` for the same Expo endpoint. Do not restore separate Codex, Cursor, or Grok manifests.
 
 ### 11. Validate before opening a PR
 
 ```bash
-claude plugin validate ./plugins/expo
+claude plugin validate .
+bun scripts/check-plugin.ts
 bun scripts/check-skill-limits.ts
+bun scripts/check-overview-routing.ts
 bun scripts/check-plugin-version-bump.ts origin/main
 ```
+
+Run `bun test scripts/` for script changes and `bun scripts/package-plugin.ts` to validate the extracted upload package. Packaging preserves source bytes and does not upload anything. See [docs/publishing.md](docs/publishing.md) for the external release handoff.
 
 Also run `python3 -m json.tool <file>` on any JSON you edited, and if the skill ships `scripts/`,
 run that skill's own validation.
@@ -150,7 +155,7 @@ and the feedback block (step 9) all fail CI when violated.
 
 `expo-animation` mirrors `skills/animate-expo` from `emilkowalski/skills`. Pull upstream changes
 with `bun scripts/sync-animate-expo.ts`; use `--check` to detect drift without writing. The script
-preserves this repository's skill name, collaboration notice, and feedback block.
+preserves this repository's skill name, collaboration notice, execution guidance, and feedback block.
 
 ### Conventions
 
@@ -161,3 +166,15 @@ preserves this repository's skill name, collaboration notice, and feedback block
 ## Runnable brownfield fixtures
 
 Use the [iOS brownfield playgrounds](tests/fixtures/expo-brownfield/README.md) to exercise integrated and isolated SwiftUI hosts when changing `expo-brownfield`. They include SDK 55 and SDK 57 dependency snapshots, setup commands, and a Debug/Release acceptance checklist. Native validation requires the selected SDK's Xcode toolchain; these fixtures are not part of the distributed plugin.
+
+## Chat and coding-agent support
+
+Keep instructions usable with the tools exposed by the current client. Before project or account execution, link to the shared [execution environment guidance](skills/expo-overview/references/execution-environments.md). Keep these links relative so they work in the installed package. Do not assume that a chat session has a checkout, terminal, native SDKs, or EAS CLI credentials just because MCP is connected. Client-specific execution improvements should include the manual cases in [docs/testing.md](docs/testing.md).
+
+## Experimental skills
+
+Keep unstable API guidance in `experimental-skills/<skill-name>/`, with no separate plugin manifest. Register it in the Experimental catalog group and the root README. Run the same metadata, feedback, and size checks. Graduation into the stable plugin requires moving it to `skills/` and adding it to the stable index and overview router.
+
+## Evaluation infrastructure
+
+The private evaluation harness is maintainer tooling and is not a plugin dependency. Follow the pinned setup in `scripts/setup-eval-harness.sh` when running evaluations; do not add a Git submodule or commit the downloaded checkout. Paid cloud evaluations are separate from the offline packaging checks.

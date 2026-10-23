@@ -1,6 +1,6 @@
 # Trusted producer for the shared skill-eval "main" baseline cache that
 # skill-eval-ci.yml's PR-triggered jobs read from. Runs on every push to
-# main touching plugins/expo/skills/**.
+# main touching skills/**.
 #
 # Per PRD: compute the fingerprint for main's current content (same script
 # skill-eval-ci.yml uses), try an exact-match restore, and only on a miss,
@@ -32,7 +32,15 @@ on:
     branches:
       - main
     paths:
-      - plugins/expo/skills/**
+      - skills/**
+      - plugin.json
+      - mcp.json
+      - .mcp.json
+      - .claude-plugin/plugin.json
+      - scripts/ci.sh
+      - scripts/ci.py
+      - scripts/setup-eval-harness.sh
+      - scripts/eval-harness.json
   workflow_dispatch: {}
 
 concurrency:
@@ -68,7 +76,7 @@ jobs:
 
       - name: author and evaluate if needed
         if: ${{ steps.check_cache.outputs.cache_hit == 'false' }}
-        run: bash scripts/ci.sh author_and_evaluate_baseline "$(pwd)/plugins/expo" cached-baseline-notes-main skills_available_unmentioned
+        run: bash scripts/ci.sh author_and_evaluate_baseline "$(pwd)" cached-baseline-notes-main skills_available_unmentioned
 
       # should_save folds the cache-miss check and the trusted-branch check
       # into one bash-computed output, so save_cache only needs a single
@@ -133,7 +141,7 @@ jobs:
 
       - name: author and evaluate if needed
         if: ${{ steps.check_cache.outputs.cache_hit == 'false' }}
-        run: bash scripts/ci.sh author_and_evaluate_baseline "$(pwd)/plugins/expo" cached-baseline-hot_chocolate-main skills_available_unmentioned
+        run: bash scripts/ci.sh author_and_evaluate_baseline "$(pwd)" cached-baseline-hot_chocolate-main skills_available_unmentioned
 
       - name: write baseline manifest
         id: manifest
@@ -195,7 +203,7 @@ jobs:
 
       - name: author and evaluate if needed
         if: ${{ steps.check_cache.outputs.cache_hit == 'false' }}
-        run: bash scripts/ci.sh author_and_evaluate_baseline "$(pwd)/plugins/expo" cached-baseline-wiki_reader-main skills_available_unmentioned
+        run: bash scripts/ci.sh author_and_evaluate_baseline "$(pwd)" cached-baseline-wiki_reader-main skills_available_unmentioned
 
       - name: write baseline manifest
         id: manifest
