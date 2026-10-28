@@ -87,7 +87,8 @@ for (const path of skills) {
   const rel = path.replace(process.cwd() + "/", "");
   const dirName = dirname(path).split("/").pop() ?? "";
   seenDirs.add(dirName);
-  const isPaid = dirName.startsWith("eas-");
+  // Expo Simulators follows the product name but remains a paid EAS service.
+  const isPaid = dirName.startsWith("eas-") || dirName === "expo-simulators";
 
   if (description.trim().length === 0)
     errors.push(`${rel}: description is empty`);
@@ -121,7 +122,7 @@ for (const path of skills) {
   const group = catalogGroups.get(dirName);
   if (!group) errors.push(`${rel}: skill is not listed in skills.sh.json`);
   else if (group !== "experimental" && group !== (isPaid ? "paid" : "framework"))
-    errors.push(`${rel}: skills.sh.json lists this skill in the ${group} group, but the ${isPaid ? "eas-" : "expo-"} prefix requires the ${isPaid ? "paid" : "framework"} group`);
+    errors.push(`${rel}: skills.sh.json lists this skill in the ${group} group, but this skill requires the ${isPaid ? "paid" : "framework"} group`);
 }
 
 for (const [skill] of catalogGroups) {

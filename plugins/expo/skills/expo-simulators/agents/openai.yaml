@@ -1,0 +1,4 @@
+interface:
+  display_name: "Expo Simulators"
+  short_description: "Remote iOS simulators and Android emulators on EAS cloud"
+  default_prompt: "Use $expo-simulators to run, install, screenshot, and drive an app on a remote iOS simulator or Android emulator on EAS cloud."

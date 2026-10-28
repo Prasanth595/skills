@@ -41,6 +41,26 @@ This selects every Expo skill without selecting every agent. The CLI will still 
 
 For most agents, this is the only install command you need. Run it from the project root, then restart or refresh your agent session so it can discover the installed `SKILL.md` files.
 
+Install Expo Simulators on its own:
+
+```text
+npx skills@latest add expo/skills --skill expo-simulators
+```
+
+The former `--skill eas-simulator` install and explicit `eas-simulator` references
+remain supported by a compatibility entrypoint that loads the same workflow.
+Prefer `expo-simulators` for new installs and references. The CLI commands remain
+`eas simulator:*` and `npx --yes eas-cli@latest simulator:*`; the session config
+remains `.env.eas-simulator`.
+
+The legacy entrypoint remains visible in skill lists (and installs with `--skill '*'`).
+Its workflow and reference files are Git symlinks to the canonical skill. The skills
+CLI resolves them into a standalone install; manual copies or other packagers must
+preserve those links with both skill directories, or dereference them. Raw GitHub
+file readers do not resolve symlinks.
+The legacy package includes a CI-checked source fingerprint so skills CLI updates
+also detect changes to the shared workflow and references.
+
 ### Claude Code Plugin
 
 Install from the official Claude Code plugin marketplace:
@@ -134,7 +154,7 @@ Skills whose core purpose uses paid Expo Application Services (EAS).
 | `eas-observe` | EAS Observe setup and launch, route, event, and version metrics. |
 | `eas-update` | EAS Update setup, OTA publishing, runtime compatibility, testing, and debugging. |
 | `eas-update-insights` | EAS Update health, crash rates, launch counts, payload size, and rollout gates. |
-| `eas-simulator` | Run and drive your app on a remote iOS simulator or Android emulator on EAS cloud - from the CLI or an agent, with a live browser preview (iOS only). |
+| `expo-simulators` | Run and drive your app on a remote iOS simulator or Android emulator on EAS cloud - from the CLI or an agent, with a live browser preview. |
 
 ### Experimental
 
