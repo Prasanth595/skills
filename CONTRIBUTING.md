@@ -30,12 +30,29 @@ Names are lowercase kebab-case (max 64 chars). The prefix signals the free/paid 
 - **`expo-*`** - open-source framework skills: the Expo SDK, Expo Router, React Native, and
   local tooling. Examples: `expo-router`, `expo-dom`, `expo-module`, `expo-web-to-native`.
 - **`eas-*`** - skills whose core purpose is a paid Expo Application Services product.
-  Examples: `eas-hosting`, `eas-app-stores`, `eas-workflows`, `eas-observe`, `eas-simulator`.
+  Examples: `eas-hosting`, `eas-app-stores`, `eas-workflows`, `eas-observe`.
+
+`expo-simulators` is the product-name exception: Expo Simulators remains a paid
+EAS service, stays in **Services & paid distribution**, and retains its costs note.
 
 Name after what users say, and prefer the real product or package name (e.g. `eas-hosting`,
 not `expo-api-routes`). To rename an existing skill, `git mv` the directory (to preserve
 history), update the frontmatter `name:`, and fix every reference (catalogs, `agents/openai.yaml`,
 cross-links in other skills).
+
+The former `eas-simulator` name is a compatibility entrypoint, listed separately in
+the Compatibility catalog group. Maintain the workflow and references only in
+`expo-simulators`; the legacy `workflow.md` and `references/` are symlinks to those
+files. Do not replace them with independent copies. Validate them with
+`bun test scripts/check-simulator-compatibility.test.ts`. When changing the packaging,
+also test standalone installs of both names with the skills CLI, which dereferences
+these links. Plugin copies must preserve both directories or dereference the links.
+After changing the canonical workflow or references, run
+`bun scripts/sync-simulator-compatibility.ts` and commit the updated legacy
+`source.sha256`. The skills CLI's update hashes do not follow symlink targets;
+this fingerprint makes canonical changes visible to legacy installs. CI checks it.
+Reference files link back to `../workflow.md`, which resolves to the full workflow
+under either skill name, including in a standalone legacy install.
 
 ### 3. Decide free vs paid - and be strict about it
 

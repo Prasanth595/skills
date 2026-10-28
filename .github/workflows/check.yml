@@ -40,6 +40,9 @@ jobs:
         continue-on-error: true
         run: bun scripts/check-skill-limits.ts
 
+      - name: Check simulator skill compatibility
+        run: bun test scripts/check-simulator-compatibility.test.ts
+
       - name: Check plugin version bump
         id: version-check
         continue-on-error: true

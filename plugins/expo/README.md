@@ -32,7 +32,7 @@ Skills come in two groups so the free vs paid boundary stays clear: open-source 
 - Configures, publishes, tests, and debugs over-the-air updates with EAS Update
 - Tracks production performance with EAS Observe
 - Covers website and API route authoring and deployment with EAS Hosting
-- Runs and drives your app on remote iOS/Android simulators on EAS cloud
+- Runs and drives your app on remote iOS simulators and Android emulators on EAS cloud
 
 ## When to Use
 
@@ -97,7 +97,13 @@ Skills come in two groups so the free vs paid boundary stays clear: open-source 
 - **eas-observe** - EAS Observe setup and launch, route, event, and version metrics
 - **eas-update** - Configure, publish, test, and debug over-the-air updates
 - **eas-update-insights** - Check EAS Update health, crash rates, adoption, and payload size
-- **eas-simulator** - Run and drive your app on a remote iOS/Android simulator on EAS cloud, from the CLI or an AI agent
+- **expo-simulators** - Run and drive your app on a remote iOS simulator or Android emulator on EAS cloud, from the CLI or an AI agent
+
+## Compatibility
+
+`eas-simulator` is a compatibility entrypoint for `expo-simulators`, with a shared
+workflow and references. Use the canonical name for new installs and references.
+See the [installation notes](../../README.md#skills-cli) for packaging requirements.
 
 ## Feedback
 
